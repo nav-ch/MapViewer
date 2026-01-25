@@ -8,9 +8,10 @@ import { GeoJSON } from 'ol/format';
 import { bbox as bboxStrategy } from 'ol/loadingstrategy';
 
 export function createLayer(config, rootApiUrl) {
-    const { type, url, params, opacity, visible } = config;
+    const { type, url, params, opacity, visible, projection } = config;
     const isProxied = params?.use_proxy;
     const finalUrl = isProxied && rootApiUrl ? `${rootApiUrl}/api/proxy?url=${encodeURIComponent(url)}` : url;
+    const layerProj = projection || 'EPSG:3857';
 
     switch (type.toUpperCase()) {
         case 'OSM':
@@ -32,7 +33,7 @@ export function createLayer(config, rootApiUrl) {
                     },
                     serverType: 'geoserver',
                     transition: 0,
-                    projection: 'EPSG:3857' // Force Web Mercator for consistency
+                    projection: layerProj
                 }),
                 opacity: opacity ?? 1,
                 visible: visible ?? true
@@ -42,7 +43,7 @@ export function createLayer(config, rootApiUrl) {
             return new TileLayer({
                 source: new XYZ({
                     url: finalUrl,
-                    projection: 'EPSG:3857'
+                    projection: layerProj
                 }),
                 opacity: opacity ?? 1,
                 visible: visible ?? true
@@ -58,8 +59,8 @@ export function createLayer(config, rootApiUrl) {
                             baseUrl +
                             'service=WFS&' +
                             'version=1.1.0&request=GetFeature&typename=' + (params.layers || params.typeName) +
-                            '&outputFormat=application/json&srsname=EPSG:3857&' +
-                            'bbox=' + extent.join(',') + ',EPSG:3857'
+                            '&outputFormat=application/json&srsname=' + layerProj + '&' +
+                            'bbox=' + extent.join(',') + ',' + layerProj
                         );
                     },
                     strategy: bboxStrategy,
@@ -72,7 +73,7 @@ export function createLayer(config, rootApiUrl) {
             return new TileLayer({
                 source: new XYZ({
                     url: finalUrl + (isProxied ? '&f=image' : '/tile/{z}/{y}/{x}'),
-                    projection: 'EPSG:3857'
+                    projection: layerProj
                 }),
                 opacity: opacity ?? 1,
                 visible: visible ?? true

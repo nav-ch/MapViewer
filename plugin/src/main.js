@@ -5,6 +5,21 @@ import { createLayer } from './layer-factory';
 import { BASEMAPS } from './basemaps';
 import axios from 'axios';
 import 'ol/ol.css';
+import proj4 from 'proj4';
+import { register } from 'ol/proj/proj4';
+import MousePosition from 'ol/control/MousePosition';
+import { createStringXY } from 'ol/coordinate';
+import { defaults as defaultControls } from 'ol/control';
+
+// Common Projections Registration
+proj4.defs("EPSG:2056", "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=besel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs");
+proj4.defs("EPSG:21781", "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=600000 +y_0=200000 +ellps=besel +towgs84=674.4,15.1,405.3,0,0,0,0 +units=m +no_defs");
+proj4.defs("EPSG:2100", "+proj=tmerc +lat_0=0 +lon_0=24 +k=0.9996 +x_0=500000 +y_0=0 +ellps=GRS80 +towgs84=-199.87,74.79,246.62,0,0,0,0 +units=m +no_defs");
+proj4.defs("EPSG:25832", "+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+proj4.defs("EPSG:3035", "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321425 +y_0=3210000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+proj4.defs("EPSG:27700", "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +towgs84=446.448,-125.157,542.06,0.15,0.247,0.842,-20.489 +units=m +no_defs");
+
+register(proj4);
 
 class MapViewer extends HTMLElement {
   constructor() {
@@ -107,8 +122,23 @@ class MapViewer extends HTMLElement {
 
   initMap() {
     if (!this.config) return;
+
+    // CLEANUP: If a map already exists, destroy it and clear containers
+    if (this.map) {
+      console.log('[MapViewer] Cleaning up existing map instance');
+      this.map.setTarget(null);
+      this.map = null;
+
+      const mousePos = this.shadowRoot.getElementById('mouse-position');
+      if (mousePos) mousePos.innerHTML = '';
+
+      const mapDiv = this.shadowRoot.getElementById('map');
+      if (mapDiv) mapDiv.innerHTML = '';
+    }
+
     console.log('[MapViewer] Initializing OpenLayers Map');
-    const { config, layers } = this.config;
+    const { config, layers, projection: mapProjection } = this.config;
+    const finalProjection = mapProjection || config.projection || 'EPSG:3857';
 
     const apiUrl = this.getAttribute('api-url') || 'http://localhost:3000';
 
@@ -135,13 +165,22 @@ class MapViewer extends HTMLElement {
         Are your Longitude/Latitude values swapped? Map might fail to render.`);
     }
 
+    const mousePositionControl = new MousePosition({
+      coordinateFormat: createStringXY(2),
+      projection: finalProjection,
+      className: 'mapviewer-coords-overlay',
+      target: this.shadowRoot.getElementById('mouse-position'),
+      undefinedHTML: '&nbsp;',
+    });
+
     this.map = new Map({
       target: this.shadowRoot.querySelector('#map'),
       layers: [basemap, ...olLayers],
+      controls: defaultControls({ attribution: false }).extend([mousePositionControl]),
       view: new View({
-        center: fromLonLat(center),
+        center: fromLonLat(center, finalProjection),
         zoom: zoom,
-        projection: 'EPSG:3857' // Standard web projection
+        projection: finalProjection
       }),
     });
 
@@ -300,6 +339,58 @@ class MapViewer extends HTMLElement {
                     top: 20px !important;
                     left: 20px !important;
                 }
+                .map-info-bar {
+          position: absolute;
+          bottom: 15px;
+          left: 15px;
+          background: rgba(255, 255, 255, 0.4);
+          padding: 4px 10px;
+          border-radius: 8px;
+          font-size: 10px;
+          font-weight: 600;
+          color: #0f172a;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          z-index: 100;
+          backdrop-filter: blur(4px);
+          border: 1px solid rgba(255,255,255,0.3);
+          pointer-events: none;
+        }
+        .projection-badge {
+          background: #3b82f6;
+          color: white;
+          padding: 1px 6px;
+          border-radius: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+          box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        }
+        .mapviewer-coords-overlay {
+          position: absolute !important;
+          bottom: 12px !important;
+          left: 12px !important;
+          z-index: 1000 !important;
+          pointer-events: none !important;
+          white-space: nowrap !important;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+          color: #0f172a !important;
+          font-size: 11px !important;
+          font-weight: 600 !important;
+          background: rgba(255, 255, 255, 0.6) !important;
+          backdrop-filter: blur(4px) !important;
+          padding: 2px 8px !important;
+          border-radius: 6px !important;
+          border: 1px solid rgba(255, 255, 255, 0.3) !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+          /* Premium Halo effect */
+          text-shadow: 
+            -1px -1px 0 #fff,  
+             1px -1px 0 #fff,
+            -1px  1px 0 #fff,
+             1px  1px 0 #fff,
+             0 0 4px rgba(255,255,255,0.8) !important;
+        }
                 .control-panel {
                     position: absolute;
                     top: 24px;
@@ -343,6 +434,7 @@ class MapViewer extends HTMLElement {
             </style>
             <div id="map-container">
                 <div id="map"></div>
+                <div id="mouse-position" class="mapviewer-coords-overlay"></div>
                 <div class="control-panel">
                     <span class="title">Basemap Selection</span>
                     <select id="basemap-switcher">

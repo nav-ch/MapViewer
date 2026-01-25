@@ -53,15 +53,15 @@ router.get('/:id', authenticateAdmin, async (req, res) => {
     }
 });
 
-// Create a map
+// Create a new map
 router.post('/', authenticateAdmin, async (req, res) => {
-    const { title, description, config, layers } = req.body;
+    const { title, description, config, projection, layers } = req.body;
     const mapId = uuidv4();
     try {
         await db.query('BEGIN TRANSACTION');
         await db.query(
-            'INSERT INTO maps (id, title, description, config) VALUES ($1, $2, $3, $4)',
-            [mapId, title, description, typeof config === 'string' ? config : JSON.stringify(config)]
+            'INSERT INTO maps (id, title, description, config, projection) VALUES ($1, $2, $3, $4, $5)',
+            [mapId, title, description, typeof config === 'string' ? config : JSON.stringify(config), projection || 'EPSG:3857']
         );
 
         if (layers && layers.length > 0) {
@@ -89,14 +89,14 @@ router.post('/', authenticateAdmin, async (req, res) => {
 // Update a map
 router.put('/:id', authenticateAdmin, async (req, res) => {
     const { id } = req.params;
-    const { title, description, config, layers } = req.body;
+    const { title, description, config, projection, layers } = req.body;
     try {
         await db.query('BEGIN TRANSACTION');
 
         // Update map details
         await db.query(
-            'UPDATE maps SET title = $1, description = $2, config = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4',
-            [title, description, typeof config === 'string' ? config : JSON.stringify(config), id]
+            'UPDATE maps SET title = $1, description = $2, config = $3, projection = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5',
+            [title, description, typeof config === 'string' ? config : JSON.stringify(config), projection || 'EPSG:3857', id]
         );
 
         // Replace layers

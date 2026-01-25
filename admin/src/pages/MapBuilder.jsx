@@ -2,6 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Map as MapIcon, X, Info, Layers, Eye, MoveVertical, Loader2, ArrowRight, Settings, Check, Globe, ArrowUp, ArrowDown } from 'lucide-react';
 import { fetchLayers, fetchMaps, createMap, updateMap, deleteMap, fetchMapById, BASE_URL } from '../api';
 
+const COMMON_PROJECTIONS = [
+    { code: 'EPSG:3857', name: 'Web Mercator (Default)' },
+    { code: 'EPSG:4326', name: 'WGS 84 (GPS)' },
+    { code: 'EPSG:2056', name: 'CH1903+ / LV95' },
+    { code: 'EPSG:21781', name: 'CH1903 / LV03' },
+    { code: 'EPSG:2100', name: 'GGRS87 / Greek Grid' },
+    { code: 'EPSG:25832', name: 'ETRS89 / UTM zone 32N' },
+    { code: 'EPSG:3035', name: 'ETRS89 / LAEA Europe' },
+    { code: 'EPSG:27700', name: 'OSGB 1936 / British National Grid' }
+];
+
 const MapBuilder = () => {
     const [maps, setMaps] = useState([]);
     const [layers, setLayers] = useState([]);
@@ -13,6 +24,7 @@ const MapBuilder = () => {
         title: '',
         description: '',
         config: { zoom: 2, center: [0, 0] },
+        projection: 'EPSG:3857',
         selectedLayers: []
     });
     const [loading, setLoading] = useState(false);
@@ -48,6 +60,7 @@ const MapBuilder = () => {
                     title: fullMap.title,
                     description: fullMap.description || '',
                     config: fullMap.config || { zoom: 2, center: [0, 0] },
+                    projection: fullMap.projection || 'EPSG:3857',
                     selectedLayers: fullMap.layers || []
                 });
             } catch (err) {
@@ -58,6 +71,7 @@ const MapBuilder = () => {
                     title: map.title,
                     description: map.description || '',
                     config: map.config || { zoom: 2, center: [0, 0] },
+                    projection: map.projection || 'EPSG:3857',
                     selectedLayers: []
                 });
             } finally {
@@ -69,6 +83,7 @@ const MapBuilder = () => {
                 title: '',
                 description: '',
                 config: { zoom: 2, center: [0, 0] },
+                projection: 'EPSG:3857',
                 selectedLayers: []
             });
         }
@@ -258,9 +273,9 @@ const MapBuilder = () => {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 border-t border-slate-100 pt-6">
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-bold text-slate-700 ml-1">Initial Zoom</label>
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-5 border-t border-slate-100 pt-7">
+                                        <div className="flex flex-col gap-2.5">
+                                            <label className="text-sm font-bold text-slate-700 ml-1 tracking-tight">Initial Zoom</label>
                                             <input
                                                 type="number"
                                                 min="0"
@@ -270,11 +285,11 @@ const MapBuilder = () => {
                                                     ...formData,
                                                     config: { ...formData.config, zoom: parseInt(e.target.value) || 0 }
                                                 })}
-                                                className="bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium text-sm"
+                                                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium text-sm"
                                             />
                                         </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-bold text-slate-700 ml-1">Longitude (X)</label>
+                                        <div className="flex flex-col gap-2.5">
+                                            <label className="text-sm font-bold text-slate-700 ml-1 tracking-tight">Longitude (X)</label>
                                             <input
                                                 type="number"
                                                 step="any"
@@ -287,11 +302,11 @@ const MapBuilder = () => {
                                                         config: { ...formData.config, center: [lon, lat] }
                                                     });
                                                 }}
-                                                className="bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium text-sm"
+                                                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium text-sm"
                                             />
                                         </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-bold text-slate-700 ml-1">Latitude (Y)</label>
+                                        <div className="flex flex-col gap-2.5">
+                                            <label className="text-sm font-bold text-slate-700 ml-1 tracking-tight">Latitude (Y)</label>
                                             <input
                                                 type="number"
                                                 step="any"
@@ -304,8 +319,27 @@ const MapBuilder = () => {
                                                         config: { ...formData.config, center: [lon, lat] }
                                                     });
                                                 }}
-                                                className="bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium text-sm"
+                                                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium text-sm"
                                             />
+                                        </div>
+                                        <div className="flex flex-col gap-2 col-span-2 lg:col-span-3">
+                                            <label className="text-sm font-bold text-slate-700 ml-1">Map Projection (CRS)</label>
+                                            <div className="flex gap-2">
+                                                <select
+                                                    value={formData.projection}
+                                                    onChange={e => setFormData({ ...formData, projection: e.target.value })}
+                                                    className="flex-1 bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 cursor-pointer appearance-none transition-all font-medium text-sm"
+                                                >
+                                                    {COMMON_PROJECTIONS.map(p => <option key={p.code} value={p.code}>{p.code} - {p.name}</option>)}
+                                                </select>
+                                                <input
+                                                    type="text"
+                                                    value={formData.projection}
+                                                    onChange={e => setFormData({ ...formData, projection: e.target.value })}
+                                                    className="w-40 bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 font-mono text-sm"
+                                                    placeholder="Custom EPSG..."
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -459,7 +493,9 @@ const MapBuilder = () => {
                                     <div className="h-4 w-px bg-slate-200" />
                                     <div className="flex items-center gap-2">
                                         <Globe size={14} className="text-blue-500" />
-                                        <span className="text-[10px] font-black uppercase text-slate-800 tracking-[0.2em]">WGS84 EPSG:3857</span>
+                                        <span className="text-[10px] font-black uppercase text-slate-800 tracking-[0.2em]">
+                                            {maps.find(m => m.id === selectedMapId)?.projection || 'EPSG:3857'}
+                                        </span>
                                     </div>
                                 </div>
                             </div>

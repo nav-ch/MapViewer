@@ -5,6 +5,17 @@ import axios from 'axios';
 
 const LAYER_TYPES = ['WMS', 'WFS', 'XYZ', 'ArcGIS_Rest', 'WMTS', 'OSM'];
 
+const COMMON_PROJECTIONS = [
+    { code: 'EPSG:3857', name: 'Web Mercator (Default)' },
+    { code: 'EPSG:4326', name: 'WGS 84 (GPS)' },
+    { code: 'EPSG:2056', name: 'CH1903+ / LV95' },
+    { code: 'EPSG:21781', name: 'CH1903 / LV03' },
+    { code: 'EPSG:2100', name: 'GGRS87 / Greek Grid' },
+    { code: 'EPSG:25832', name: 'ETRS89 / UTM zone 32N' },
+    { code: 'EPSG:3035', name: 'ETRS89 / LAEA Europe' },
+    { code: 'EPSG:27700', name: 'OSGB 1936 / British National Grid' }
+];
+
 const LayerManagement = () => {
     const [layers, setLayers] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,11 +30,13 @@ const LayerManagement = () => {
             identify_fields: '',
             use_proxy: false
         },
-        is_editable: false
+        is_editable: false,
+        projection: 'EPSG:3857'
     });
     const [loading, setLoading] = useState(false);
     const [discovering, setDiscovering] = useState(false);
     const [discoveredLayers, setDiscoveredLayers] = useState([]);
+    const [discoveredProjections, setDiscoveredProjections] = useState([]);
     const [selectedDiscoveredLayer, setSelectedDiscoveredLayer] = useState('');
 
     useEffect(() => {
@@ -58,6 +71,7 @@ const LayerManagement = () => {
             });
         }
         setDiscoveredLayers([]);
+        setDiscoveredProjections([]);
         setSelectedDiscoveredLayer('');
         setIsModalOpen(true);
     };
@@ -75,15 +89,32 @@ const LayerManagement = () => {
                 const data = res.data instanceof ArrayBuffer ? new TextDecoder().decode(res.data) : res.data;
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(data, 'text/xml');
+
+                // Extract projections
+                const srsNodes = xml.querySelectorAll('SRS, CRS');
+                const projections = Array.from(new Set(Array.from(srsNodes).map(n => n.textContent))).filter(p => p.startsWith('EPSG:'));
+                setDiscoveredProjections(projections);
+
                 const layerNodes = xml.querySelectorAll('Layer > Name');
                 const found = Array.from(layerNodes).map(node => ({
                     name: node.textContent,
                     title: node.parentElement.querySelector('Title')?.textContent || node.textContent
                 })).filter(l => l.name);
                 setDiscoveredLayers(found);
+
+                if (projections.length > 0 && !formData.projection) {
+                    setFormData(prev => ({ ...prev, projection: projections[0] }));
+                }
             } else if (formData.type === 'ArcGIS_Rest') {
                 const res = await axios.get(`${proxyBase}?url=${encodeURIComponent(targetUrl)}&f=json`, { responseType: 'arraybuffer' });
                 const data = res.data instanceof ArrayBuffer ? JSON.parse(new TextDecoder().decode(res.data)) : res.data;
+
+                if (data.spatialReference?.wkid) {
+                    const wkid = `EPSG:${data.spatialReference.wkid}`;
+                    setDiscoveredProjections([wkid]);
+                    setFormData(prev => ({ ...prev, projection: wkid }));
+                }
+
                 if (data.layers) {
                     setDiscoveredLayers(data.layers.map(l => ({
                         name: String(l.id),
@@ -96,12 +127,22 @@ const LayerManagement = () => {
                 const data = res.data instanceof ArrayBuffer ? new TextDecoder().decode(res.data) : res.data;
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(data, 'text/xml');
+
+                // Extract projections
+                const srsNodes = xml.querySelectorAll('DefaultSRS, OtherSRS, DefaultCRS, OtherCRS');
+                const projections = Array.from(new Set(Array.from(srsNodes).map(n => n.textContent))).filter(p => p.startsWith('EPSG:'));
+                setDiscoveredProjections(projections);
+
                 const typeNodes = xml.querySelectorAll('FeatureType > Name');
                 const found = Array.from(typeNodes).map(node => ({
                     name: node.textContent,
                     title: node.parentElement.querySelector('Title')?.textContent || node.textContent
                 })).filter(l => l.name);
                 setDiscoveredLayers(found);
+
+                if (projections.length > 0 && !formData.projection) {
+                    setFormData(prev => ({ ...prev, projection: projections[0] }));
+                }
             }
         } catch (err) {
             console.error('Discovery failed:', err);
@@ -387,6 +428,36 @@ const LayerManagement = () => {
                                     {formData.type === 'XYZ' && 'Use {z}, {x}, {y} placeholders for tile coordinates.'}
                                     {formData.type === 'ArcGIS_Rest' && 'Provide the MapServer or FeatureServer root URL.'}
                                 </p>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-bold text-slate-700 ml-1 tracking-tight">Spatial Reference (Projection)</label>
+                                <div className="flex gap-2">
+                                    <select
+                                        value={formData.projection}
+                                        onChange={e => setFormData({ ...formData, projection: e.target.value })}
+                                        className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 cursor-pointer appearance-none transition-all font-medium"
+                                    >
+                                        <optgroup label="Discovered Projections">
+                                            {discoveredProjections.length === 0 ? (
+                                                <option disabled>No projections discovered yet</option>
+                                            ) : (
+                                                discoveredProjections.map(p => <option key={p} value={p}>{p}</option>)
+                                            )}
+                                        </optgroup>
+                                        <optgroup label="Common Projections">
+                                            {COMMON_PROJECTIONS.map(p => <option key={p.code} value={p.code}>{p.code} - {p.name}</option>)}
+                                        </optgroup>
+                                    </select>
+                                    <input
+                                        type="text"
+                                        value={formData.projection}
+                                        onChange={e => setFormData({ ...formData, projection: e.target.value })}
+                                        className="w-40 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 font-mono text-sm"
+                                        placeholder="Manual EPSG..."
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Standard projection for tiles/features. Re-discovery will update suggestions.</p>
                             </div>
 
                             {discoveredLayers.length > 0 && (
