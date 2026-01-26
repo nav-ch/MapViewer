@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapViewer</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui;
+            background: #0f172a;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .map-wrapper {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="map-wrapper">
+        <!-- api-url is empty to use current origin -->
+        <map-viewer map-id="m1" api-key="mv_example_key" api-url=""></map-viewer>
+    </div>
+
+    <script type="module" src="map-viewer.js"></script>
+</body>
+
+</html>

@@ -25,14 +25,24 @@ router.get('/:mapId', validateApiKey, async (req, res) => {
             params: typeof l.params === 'string' ? JSON.parse(l.params) : l.params
         }));
 
+        // Get assigned basemaps
+        const basemapsResult = await db.query(`
+            SELECT b.*, mb.is_default
+            FROM basemaps b
+            JOIN map_basemaps mb ON b.id = mb.basemap_id
+            WHERE mb.map_id = $1
+        `, [mapId]);
+
         res.json({
             title: mapData.title,
             projection: mapData.projection || 'EPSG:3857',
             config: typeof mapData.config === 'string' ? JSON.parse(mapData.config) : mapData.config,
             layers: layers,
+            basemaps: basemapsResult.rows,
             appName: req.app_name // Passed from validateApiKey middleware
         });
     } catch (err) {
+        console.error('[ViewerAPI Error]:', err);
         res.status(500).json({ error: err.message });
     }
 });

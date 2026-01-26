@@ -35,6 +35,10 @@ router.get('/', async (req, res) => {
             res.setHeader('Content-Type', response.headers['content-type']);
         }
 
+        // Explicitly allow sharing for the image resources
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+
         res.send(response.data);
     } catch (err) {
         console.error('Proxy Error:', err.message);

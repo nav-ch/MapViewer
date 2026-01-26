@@ -1,6 +1,7 @@
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
 import TileWMS from 'ol/source/TileWMS';
+import TileArcGISRest from 'ol/source/TileArcGISRest';
 import XYZ from 'ol/source/XYZ';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -71,8 +72,12 @@ export function createLayer(config, rootApiUrl) {
 
         case 'ARCGIS_REST':
             return new TileLayer({
-                source: new XYZ({
-                    url: finalUrl + (isProxied ? '&f=image' : '/tile/{z}/{y}/{x}'),
+                source: new TileArcGISRest({
+                    url: finalUrl,
+                    params: {
+                        ...(typeof params === 'object' ? params : {}),
+                        'LAYERS': params?.layers ? `show:${params.layers}` : undefined
+                    },
                     projection: layerProj
                 }),
                 opacity: opacity ?? 1,

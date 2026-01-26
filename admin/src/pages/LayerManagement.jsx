@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Globe, Server, Database, X, Check, Loader2, Layers, Search, Filter, MoreVertical, ArrowUp, ArrowDown } from 'lucide-react';
-import { fetchLayers, createLayer, updateLayer, deleteLayer, API_URL } from '../api';
+import { Plus, Trash2, Edit2, Globe, Server, Database, X, Check, Loader2, Layers, Search, Filter, MoreVertical, ArrowUp, ArrowDown, Copy } from 'lucide-react';
+import { fetchLayers, createLayer, updateLayer, deleteLayer, cloneLayer, API_URL } from '../api';
 import axios from 'axios';
 
 const LAYER_TYPES = ['WMS', 'WFS', 'XYZ', 'ArcGIS_Rest', 'WMTS', 'OSM'];
@@ -28,14 +28,29 @@ const LayerManagement = () => {
         params: {
             layers: '',
             identify_fields: '',
+            legend_url: '',
             use_proxy: false
         },
         is_editable: false,
         projection: 'EPSG:3857'
     });
     const [loading, setLoading] = useState(false);
+    const [discoveryFilter, setDiscoveryFilter] = useState('');
     const [discovering, setDiscovering] = useState(false);
     const [discoveredLayers, setDiscoveredLayers] = useState([]);
+
+    const handleClone = async (id) => {
+        try {
+            await cloneLayer(id);
+            loadLayers();
+        } catch (err) {
+            console.error('Clone failed:', err);
+        }
+    };
+
+    // ... existing functions ...
+    // Note: Inserting filter logic into the render part for discoveredLayers
+    // I will replace the block rendering discoveredLayers to include the search input and filtering logic efficiently.
     const [discoveredProjections, setDiscoveredProjections] = useState([]);
     const [selectedDiscoveredLayer, setSelectedDiscoveredLayer] = useState('');
 
@@ -53,10 +68,23 @@ const LayerManagement = () => {
     };
 
     const handleOpenModal = (layer = null) => {
+        console.log('handleOpenModal called with:', layer);
         if (layer) {
+            let parsedParams = {};
+            try {
+                parsedParams = typeof layer.params === 'string' ? JSON.parse(layer.params) : (layer.params || {});
+            } catch (e) {
+                console.error('Error parsing layer params', e);
+            }
+
             const sanitizedLayer = {
                 ...layer,
-                params: typeof layer.params === 'string' ? JSON.parse(layer.params) : (layer.params || {})
+                params: parsedParams,
+                name: layer.name || '',
+                type: layer.type || 'WMS',
+                url: layer.url || '',
+                is_editable: !!layer.is_editable,
+                projection: layer.projection || 'EPSG:3857'
             };
             setEditingLayer(sanitizedLayer);
             setFormData(sanitizedLayer);
@@ -66,13 +94,17 @@ const LayerManagement = () => {
                 name: '',
                 type: 'WMS',
                 url: '',
-                params: { layers: '', identify_fields: '' },
-                is_editable: false
+                params: { layers: '', identify_fields: '', legend_url: '', use_proxy: false },
+                is_editable: false,
+                projection: 'EPSG:3857'
             });
         }
         setDiscoveredLayers([]);
         setDiscoveredProjections([]);
         setSelectedDiscoveredLayer('');
+        setDiscoveryFilter('');
+        setDiscoveryFilter('');
+        console.log('Setting isModalOpen to true');
         setIsModalOpen(true);
     };
 
@@ -96,10 +128,15 @@ const LayerManagement = () => {
                 setDiscoveredProjections(projections);
 
                 const layerNodes = xml.querySelectorAll('Layer > Name');
-                const found = Array.from(layerNodes).map(node => ({
-                    name: node.textContent,
-                    title: node.parentElement.querySelector('Title')?.textContent || node.textContent
-                })).filter(l => l.name);
+                const found = Array.from(layerNodes).map(node => {
+                    const layerNode = node.parentElement;
+                    const legendNode = layerNode.querySelector('Style LegendURL OnlineResource');
+                    return {
+                        name: node.textContent,
+                        title: layerNode.querySelector('Title')?.textContent || node.textContent,
+                        legend_url: legendNode?.getAttribute('xlink:href') || ''
+                    };
+                }).filter(l => l.name);
                 setDiscoveredLayers(found);
 
                 if (projections.length > 0 && !formData.projection) {
@@ -119,7 +156,8 @@ const LayerManagement = () => {
                     setDiscoveredLayers(data.layers.map(l => ({
                         name: String(l.id),
                         title: l.name,
-                        fields: l.fields?.map(f => f.name).join(',')
+                        fields: l.fields?.map(f => f.name).join(','),
+                        legend_url: targetUrl.endsWith('/') ? `${targetUrl}legend` : `${targetUrl}/legend`
                     })));
                 }
             } else if (formData.type === 'WFS') {
@@ -194,7 +232,8 @@ const LayerManagement = () => {
             params: {
                 ...safeParams,
                 layers: newLayers.join(','),
-                identify_fields: identifyFields
+                identify_fields: identifyFields,
+                legend_url: layer.legend_url || safeParams.legend_url || ''
             }
         });
     };
@@ -232,6 +271,7 @@ const LayerManagement = () => {
             loadLayers();
         } catch (err) {
             console.error('Save failed:', err);
+            alert(`Failed to save layer: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -330,7 +370,7 @@ const LayerManagement = () => {
                         <div className="flex items-center justify-between mt-8 pt-4 border-t border-slate-100">
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => handleOpenModal(layer)}
+                                    onClick={(e) => { e.stopPropagation(); handleOpenModal(layer); }}
                                     className="p-2.5 bg-slate-50 text-slate-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all"
                                 >
                                     <Edit2 size={16} />
@@ -340,6 +380,13 @@ const LayerManagement = () => {
                                     className="p-2.5 bg-slate-50 text-slate-600 hover:bg-rose-600 hover:text-white rounded-xl transition-all"
                                 >
                                     <Trash2 size={16} />
+                                </button>
+                                <button
+                                    onClick={() => handleClone(layer.id)}
+                                    className="p-2.5 bg-slate-50 text-slate-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-all"
+                                    title="Clone Layer"
+                                >
+                                    <Copy size={16} />
                                 </button>
                             </div>
                             {layer.is_editable && (
@@ -464,25 +511,36 @@ const LayerManagement = () => {
                                 <div className="flex flex-col gap-4 animate-in slide-in-from-top-2 duration-300 bg-blue-50/30 p-6 rounded-[24px] border border-blue-100/50">
                                     <div className="flex items-center justify-between">
                                         <label className="text-sm font-bold text-blue-800 tracking-tight">Available Sub-layers</label>
-                                        <span className="text-[10px] font-bold text-blue-400 uppercase">{discoveredLayers.length} Found</span>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Filter..."
+                                                className="bg-white border border-blue-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-blue-500 w-32"
+                                                value={discoveryFilter}
+                                                onChange={(e) => setDiscoveryFilter(e.target.value)}
+                                            />
+                                            <span className="text-[10px] font-bold text-blue-400 uppercase">{discoveredLayers.filter(l => l.title.toLowerCase().includes(discoveryFilter.toLowerCase())).length} Found</span>
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                                        {discoveredLayers.map(l => {
-                                            const isSelected = formData.params.layers?.split(',').includes(l.name);
-                                            return (
-                                                <button
-                                                    key={l.name}
-                                                    type="button"
-                                                    onClick={() => toggleDiscoveredLayer(l.name)}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300'}`}
-                                                >
-                                                    <div className={`w-5 h-5 rounded-md flex items-center justify-center border ${isSelected ? 'bg-white text-blue-600 border-white' : 'border-slate-200'}`}>
-                                                        {isSelected && <Check size={12} strokeWidth={4} />}
-                                                    </div>
-                                                    <span className="text-[11px] font-bold truncate flex-1">{l.title}</span>
-                                                </button>
-                                            );
-                                        })}
+                                        {discoveredLayers
+                                            .filter(l => l.title.toLowerCase().includes(discoveryFilter.toLowerCase()))
+                                            .map(l => {
+                                                const isSelected = formData.params.layers?.split(',').includes(l.name);
+                                                return (
+                                                    <button
+                                                        key={l.name}
+                                                        type="button"
+                                                        onClick={() => toggleDiscoveredLayer(l.name)}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300'}`}
+                                                    >
+                                                        <div className={`w-5 h-5 rounded-md flex items-center justify-center border ${isSelected ? 'bg-white text-blue-600 border-white' : 'border-slate-200'}`}>
+                                                            {isSelected && <Check size={12} strokeWidth={4} />}
+                                                        </div>
+                                                        <span className="text-[11px] font-bold truncate flex-1">{l.title}</span>
+                                                    </button>
+                                                );
+                                            })}
                                     </div>
                                 </div>
                             )}
@@ -534,6 +592,21 @@ const LayerManagement = () => {
                                     placeholder="e.g. name,capacity,status"
                                 />
                                 <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Attribute names to display when a feature is clicked.</p>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-bold text-slate-700 ml-1 tracking-tight">Legend URL (Optional)</label>
+                                <input
+                                    type="text"
+                                    value={formData.params?.legend_url || ''}
+                                    onChange={e => setFormData({
+                                        ...formData,
+                                        params: { ...formData.params, legend_url: e.target.value }
+                                    })}
+                                    className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium"
+                                    placeholder="e.g. https://.../wms?request=GetLegendGraphic..."
+                                />
+                                <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Direct link to a legend image or GetLegendGraphic request.</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Map as MapIcon, X, Info, Layers, Eye, MoveVertical, Loader2, ArrowRight, Settings, Check, Globe, ArrowUp, ArrowDown } from 'lucide-react';
-import { fetchLayers, fetchMaps, createMap, updateMap, deleteMap, fetchMapById, BASE_URL } from '../api';
+import { Plus, Trash2, Edit2, Map as MapIcon, X, Info, Layers, Eye, EyeOff, MoveVertical, Loader2, ArrowRight, Settings, Check, Globe, ArrowUp, ArrowDown, Copy, Camera, Save } from 'lucide-react';
+import { fetchLayers, fetchMaps, createMap, updateMap, deleteMap, cloneMap, fetchMapById, fetchBasemaps, BASE_URL } from '../api';
 
 const COMMON_PROJECTIONS = [
     { code: 'EPSG:3857', name: 'Web Mercator (Default)' },
@@ -25,10 +25,63 @@ const MapBuilder = () => {
         description: '',
         config: { zoom: 2, center: [0, 0] },
         projection: 'EPSG:3857',
-        selectedLayers: []
+        selectedLayers: [],
+        selectedBasemaps: []
     });
+    const [basemaps, setBasemaps] = useState([]);
     const [loading, setLoading] = useState(false);
     const sanitizedApiUrl = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
+    const mapViewerRef = React.useRef(null);
+
+    const handleCaptureView = async () => {
+        if (mapViewerRef.current && mapViewerRef.current.getViewState) {
+            const state = mapViewerRef.current.getViewState();
+            if (state) {
+                // Update the edited map's config directly via API, or just update local formData if we were editing?
+                // The prompt says "interactively set the initial extent".
+                // Since this is a preview of an EXISTING map (mostly), we should likely update that map's config.
+                // However, the user might be previewing *before* opening the modal... wait.
+                // The "Live View" button is on the card.
+
+                if (window.confirm(`Update map initial extent?\nZoom: ${state.zoom.toFixed(2)}\nCenter: [${state.center[0].toFixed(4)}, ${state.center[1].toFixed(4)}]`)) {
+
+                    try {
+                        // Fetch the LATEST full map data to ensure we don't lose layers/basemaps
+                        const fullMapRes = await fetchMapById(selectedMapId);
+                        const mapToUpdate = fullMapRes.data;
+
+                        if (mapToUpdate) {
+                            const currentConfig = typeof mapToUpdate.config === 'string' ? JSON.parse(mapToUpdate.config) : (mapToUpdate.config || {});
+                            const newConfig = { ...currentConfig, zoom: state.zoom, center: state.center };
+
+                            await updateMap(selectedMapId, {
+                                ...mapToUpdate,
+                                config: newConfig,
+                                layers: mapToUpdate.layers?.map((l, i) => ({
+                                    id: l.id,
+                                    z_index: l.z_index !== undefined ? l.z_index : i,
+                                    opacity: l.opacity,
+                                    visible: l.visible !== 0 && l.visible !== false
+                                })) || [],
+                                basemaps: mapToUpdate.basemaps?.map(b => ({
+                                    id: b.id,
+                                    is_default: b.is_default
+                                })) || []
+                            });
+
+                            alert('Initial extent updated successfully!');
+                            loadData();
+                        }
+                    } catch (e) {
+                        console.error('Failed to update view', e);
+                        alert('Failed to save view: ' + e.message);
+                    }
+                }
+            }
+        } else {
+            alert('Map viewer not ready or plugin outdated.');
+        }
+    };
 
     useEffect(() => {
         loadData();
@@ -36,13 +89,14 @@ const MapBuilder = () => {
 
     const loadData = async () => {
         try {
-            const [mapsRes, layersRes] = await Promise.all([fetchMaps(), fetchLayers()]);
+            const [mapsRes, layersRes, basemapsRes] = await Promise.all([fetchMaps(), fetchLayers(), fetchBasemaps()]);
             const parsedMaps = mapsRes.data.map(m => ({
                 ...m,
                 config: typeof m.config === 'string' ? JSON.parse(m.config) : m.config
             }));
             setMaps(parsedMaps);
             setLayers(layersRes.data);
+            setBasemaps(basemapsRes.data);
         } catch (err) {
             console.error('Failed to fetch data:', err);
         }
@@ -61,7 +115,11 @@ const MapBuilder = () => {
                     description: fullMap.description || '',
                     config: fullMap.config || { zoom: 2, center: [0, 0] },
                     projection: fullMap.projection || 'EPSG:3857',
-                    selectedLayers: fullMap.layers || []
+                    selectedLayers: fullMap.layers ? fullMap.layers.map(l => ({
+                        ...l,
+                        visible: l.visible !== 0 && l.visible !== false
+                    })) : [],
+                    selectedBasemaps: fullMap.basemaps || []
                 });
             } catch (err) {
                 console.error('Failed to fetch map details:', err);
@@ -84,7 +142,8 @@ const MapBuilder = () => {
                 description: '',
                 config: { zoom: 2, center: [0, 0] },
                 projection: 'EPSG:3857',
-                selectedLayers: []
+                selectedLayers: [],
+                selectedBasemaps: []
             });
         }
         setIsModalOpen(true);
@@ -108,6 +167,31 @@ const MapBuilder = () => {
                 }]
             });
         }
+    };
+
+    const toggleBasemap = (basemap) => {
+        const isSelected = formData.selectedBasemaps.find(b => b.id === basemap.id);
+        if (isSelected) {
+            setFormData({
+                ...formData,
+                selectedBasemaps: formData.selectedBasemaps.filter(b => b.id !== basemap.id)
+            });
+        } else {
+            setFormData({
+                ...formData,
+                selectedBasemaps: [...formData.selectedBasemaps, { ...basemap, is_default: formData.selectedBasemaps.length === 0 }]
+            });
+        }
+    };
+
+    const setDefaultBasemap = (basemapId) => {
+        setFormData({
+            ...formData,
+            selectedBasemaps: formData.selectedBasemaps.map(b => ({
+                ...b,
+                is_default: b.id === basemapId
+            }))
+        });
     };
 
     const moveLayer = (index, direction) => {
@@ -135,6 +219,10 @@ const MapBuilder = () => {
                     z_index: i,
                     opacity: l.opacity || 1.0,
                     visible: l.visible !== false
+                })),
+                basemaps: formData.selectedBasemaps.map(b => ({
+                    id: b.id,
+                    is_default: !!b.is_default
                 }))
             };
 
@@ -160,6 +248,24 @@ const MapBuilder = () => {
         } catch (err) {
             console.error('Delete failed:', err);
         }
+    };
+
+    const handleClone = async (id) => {
+        try {
+            await cloneMap(id);
+            loadData();
+        } catch (err) {
+            console.error('Clone failed:', err);
+        }
+    };
+
+    const toggleLayerVisibility = (index) => {
+        const newLayers = [...formData.selectedLayers];
+        newLayers[index].visible = newLayers[index].visible === undefined ? false : !newLayers[index].visible;
+        setFormData({
+            ...formData,
+            selectedLayers: newLayers
+        });
     };
 
     return (
@@ -193,6 +299,13 @@ const MapBuilder = () => {
                             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/10" />
                             <MapIcon size={48} className="text-slate-200 group-hover:scale-110 group-hover:text-blue-200 transition-all duration-700" />
                             <div className="absolute top-4 right-4 flex gap-2">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleClone(map.id); }}
+                                    className="p-2.5 bg-white/90 backdrop-blur-md rounded-xl text-slate-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                                    title="Clone Map"
+                                >
+                                    <Copy size={16} />
+                                </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleOpenModal(map); }}
                                     className="p-2.5 bg-white/90 backdrop-blur-md rounded-xl text-slate-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
@@ -345,6 +458,41 @@ const MapBuilder = () => {
                                 </div>
 
                                 <div className="border-t border-slate-100 pt-8">
+                                    <h4 className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">
+                                        <Globe size={16} /> Basemap Selection
+                                    </h4>
+                                    <div className="flex flex-col gap-3">
+                                        {formData.selectedBasemaps.length === 0 && (
+                                            <div className="p-4 text-center bg-slate-50 rounded-xl border border-slate-100 border-dashed">
+                                                <p className="text-xs text-slate-400 font-bold italic">No basemaps selected.</p>
+                                            </div>
+                                        )}
+                                        {formData.selectedBasemaps.map((b) => (
+                                            <div key={b.id} className="bg-white border border-slate-200 p-3 rounded-xl flex items-center justify-between group shadow-sm hover:border-blue-200 transition-all">
+                                                <div className="flex items-center gap-3">
+                                                    <div
+                                                        onClick={() => setDefaultBasemap(b.id)}
+                                                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${b.is_default ? 'bg-blue-600 border-blue-600' : 'border-slate-300 hover:border-blue-400'}`}
+                                                    >
+                                                        {b.is_default && <Check size={12} className="text-white" />}
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-sm font-bold text-slate-700 block leading-none">{b.name}</span>
+                                                        <span className="text-[10px] text-slate-400 mt-0.5 block">{b.is_default ? 'Default Provider' : 'Secondary Provider'}</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => toggleBasemap(b)}
+                                                    className="p-1.5 text-slate-300 hover:text-rose-600 transition-all opacity-0 group-hover:opacity-100"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-slate-100 pt-8">
                                     <div className="flex items-center justify-between mb-6">
                                         <h4 className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest">
                                             <Layers size={16} /> Stack Order
@@ -358,7 +506,32 @@ const MapBuilder = () => {
                                             </div>
                                         )}
                                         {formData.selectedLayers.map((l, idx) => (
-                                            <div key={l.id} className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between group shadow-sm hover:border-blue-200 transition-all">
+                                            <div
+                                                key={l.id}
+                                                draggable
+                                                onDragStart={(e) => {
+                                                    e.dataTransfer.setData('text/plain', idx);
+                                                    e.dataTransfer.effectAllowed = 'move';
+                                                }}
+                                                onDragOver={(e) => {
+                                                    e.preventDefault();
+                                                    e.dataTransfer.dropEffect = 'move';
+                                                }}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    const sourceIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                                                    if (sourceIdx !== idx) {
+                                                        const newLayers = [...formData.selectedLayers];
+                                                        const [movedItem] = newLayers.splice(sourceIdx, 1);
+                                                        newLayers.splice(idx, 0, movedItem);
+                                                        setFormData({
+                                                            ...formData,
+                                                            selectedLayers: newLayers
+                                                        });
+                                                    }
+                                                }}
+                                                className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between group shadow-sm hover:border-blue-200 transition-all cursor-grab active:cursor-grabbing"
+                                            >
                                                 <div className="flex items-center gap-4">
                                                     <div className="cursor-move text-slate-300 group-hover:text-blue-600 transition-colors">
                                                         <MoveVertical size={16} />
@@ -383,6 +556,14 @@ const MapBuilder = () => {
                                                     >
                                                         <ArrowDown size={14} />
                                                     </button>
+                                                    <div class="h-4 w-px bg-slate-100 mx-1"></div>
+                                                    <button
+                                                        onClick={() => toggleLayerVisibility(idx)}
+                                                        className={`p-1.5 transition-all ${l.visible !== false ? 'text-blue-600 bg-blue-50 rounded-lg' : 'text-slate-300 hover:text-slate-500'}`}
+                                                        title={l.visible !== false ? 'Visible' : 'Hidden'}
+                                                    >
+                                                        {l.visible !== false ? <Eye size={14} /> : <EyeOff size={14} />}
+                                                    </button>
                                                     <button
                                                         onClick={() => toggleLayer(l)}
                                                         className="p-1.5 text-slate-300 hover:text-rose-600 transition-all ml-1"
@@ -397,36 +578,69 @@ const MapBuilder = () => {
                             </div>
 
                             <div className="flex-1 bg-slate-50/50 p-8 overflow-y-auto">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-                                    <h4 className="text-xl font-bold text-slate-800">Available Data Sources</h4>
-                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Click to toggle layerstack</div>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                                    {layers.map(l => {
-                                        const isSelected = formData.selectedLayers.find(sl => sl.id === l.id);
-                                        return (
-                                            <button
-                                                key={l.id}
-                                                onClick={() => toggleLayer(l)}
-                                                className={`
-                                                    p-5 rounded-[24px] border text-left transition-all relative overflow-hidden
-                                                    ${isSelected
-                                                        ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100'
-                                                        : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}
-                                                `}
-                                            >
-                                                {isSelected && <div className="absolute top-0 right-0 w-8 h-8 bg-white/20 rounded-bl-2xl flex items-center justify-center"><Check size={16} /></div>}
-                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${isSelected ? 'bg-white/20' : 'bg-slate-50 text-slate-400'}`}>
-                                                    <Layers size={24} />
-                                                </div>
-                                                <div>
-                                                    <div className={`font-bold transition-colors ${isSelected ? 'text-white' : 'text-slate-800'}`}>{l.name}</div>
-                                                    <div className={`text-[10px] uppercase font-bold tracking-widest mt-1 opacity-60`}>{l.type}</div>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                <section className="mb-10">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                                        <h4 className="text-lg font-bold text-slate-800">Available Basemaps</h4>
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global Catalog</div>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
+                                        {basemaps.map(b => {
+                                            const isSelected = formData.selectedBasemaps.find(sb => sb.id === b.id);
+                                            return (
+                                                <button
+                                                    key={b.id}
+                                                    onClick={() => toggleBasemap(b)}
+                                                    className={`
+                                                        p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex items-center gap-3
+                                                        ${isSelected
+                                                            ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                                                            : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}
+                                                    `}
+                                                >
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isSelected ? 'bg-white/20' : 'bg-slate-50 text-slate-400'}`}>
+                                                        <Globe size={20} />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className={`font-bold text-sm truncate transition-colors ${isSelected ? 'text-white' : 'text-slate-800'}`}>{b.name}</div>
+                                                        <div className={`text-[10px] uppercase font-bold tracking-widest mt-0.5 opacity-60`}>{b.type}</div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 border-t border-slate-100 pt-8">
+                                        <h4 className="text-lg font-bold text-slate-800">Data Layers</h4>
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">WMS / WFS / ArcGIS</div>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
+                                        {layers.map(l => {
+                                            const isSelected = formData.selectedLayers.find(sl => sl.id === l.id);
+                                            return (
+                                                <button
+                                                    key={l.id}
+                                                    onClick={() => toggleLayer(l)}
+                                                    className={`
+                                                        p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex items-center gap-3
+                                                        ${isSelected
+                                                            ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                                                            : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}
+                                                    `}
+                                                >
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isSelected ? 'bg-white/20' : 'bg-slate-50 text-slate-400'}`}>
+                                                        <Layers size={20} />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className={`font-bold text-sm truncate transition-colors ${isSelected ? 'text-white' : 'text-slate-800'}`}>{l.name}</div>
+                                                        <div className={`text-[10px] uppercase font-bold tracking-widest mt-0.5 opacity-60`}>{l.type}</div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
                             </div>
                         </div>
 
@@ -477,11 +691,22 @@ const MapBuilder = () => {
 
                             <div className="w-full h-full">
                                 <map-viewer
+                                    ref={mapViewerRef}
                                     map-id={selectedMapId}
                                     api-key="internal_admin_preview"
                                     api-url={sanitizedApiUrl}
                                     style={{ width: '100%', height: '100%' }}
                                 ></map-viewer>
+                            </div>
+
+                            <div className="absolute bottom-8 right-24 z-[70]">
+                                <button
+                                    onClick={handleCaptureView}
+                                    className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/50 shadow-2xl flex items-center gap-3 text-slate-800 font-bold hover:scale-105 transition-all text-xs uppercase tracking-wider"
+                                >
+                                    <Camera size={16} className="text-blue-600" />
+                                    Set Initial Extent
+                                </button>
                             </div>
 
                             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[70]">

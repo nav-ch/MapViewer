@@ -7,24 +7,43 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+const path = require('path');
+
 // Middleware
 app.use(helmet({
-    contentSecurityPolicy: false, // Disabled for development, will configure properly for plugin
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow resources to be loaded by other origins
 }));
-app.use(cors());
+app.use(cors({
+    origin: '*', // For development, allow all. In production this should be restricted.
+    credentials: true
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 
-// Routes
+// Serve Static Files
+
+// Serve Admin Panel at /admin
+app.use('/admin', express.static(path.join(__dirname, '../admin/dist')));
+
+// Serve Plugin/Viewer at root
+app.use(express.static(path.join(__dirname, '../plugin/dist')));
+
+// API Routes
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
 app.use('/api/layers', require('./routes/layers'));
 app.use('/api/maps', require('./routes/maps'));
+app.use('/api/basemaps', require('./routes/basemaps'));
 app.use('/api/keys', require('./routes/keys'));
 app.use('/api/viewer', require('./routes/viewer'));
 app.use('/api/proxy', require('./routes/proxy'));
+
+app.get(/^\/admin\/.*/, (req, res) => {
+    res.sendFile(path.join(__dirname, '../admin/dist/index.html'));
+});
 
 // Start Server
 app.listen(port, () => {

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Layers, Map as MapIcon, Key, Menu, X, Bell, User } from 'lucide-react';
+import { LayoutDashboard, Layers, Map as MapIcon, Key, Menu, X, Bell, User, Globe } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import LayerManagement from './pages/LayerManagement';
 import MapBuilder from './pages/MapBuilder';
 import KeyManagement from './pages/KeyManagement';
+import BasemapManagement from './pages/BasemapManagement';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,6 +40,7 @@ const Layout = ({ children }) => {
         <nav className="flex flex-col gap-2">
           <NavItem to="/" icon={<LayoutDashboard size={20} />} label="Dashboard" />
           <NavItem to="/layers" icon={<Layers size={20} />} label="Layers" />
+          <NavItem to="/basemaps" icon={<Globe size={20} />} label="Basemaps" />
           <NavItem to="/maps" icon={<MapIcon size={20} />} label="Maps" />
           <NavItem to="/keys" icon={<Key size={20} />} label="API Keys" />
         </nav>
@@ -112,6 +114,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/layers" element={<LayerManagement />} />
+          <Route path="/basemaps" element={<BasemapManagement />} />
           <Route path="/maps" element={<MapBuilder />} />
           <Route path="/keys" element={<KeyManagement />} />
         </Routes>

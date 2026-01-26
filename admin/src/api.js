@@ -26,4 +26,13 @@ export const createApiKey = (data) => api.post('/keys', data);
 export const updateApiKey = (id, data) => api.put(`/keys/${id}`, data);
 export const deleteApiKey = (id) => api.delete(`/keys/${id}`);
 
+// Clone API
+export const cloneMap = (id) => api.post(`/maps/${id}/clone`);
+export const cloneLayer = (id) => api.post(`/layers/${id}/clone`);
+
+export const fetchBasemaps = () => api.get('/basemaps');
+export const createBasemap = (data) => api.post('/basemaps', data);
+export const updateBasemap = (id, data) => api.put(`/basemaps/${id}`, data);
+export const deleteBasemap = (id) => api.delete(`/basemaps/${id}`);
+
 export default api;

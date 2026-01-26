@@ -43,10 +43,19 @@ router.get('/:id', authenticateAdmin, async (req, res) => {
             params: typeof l.params === 'string' ? JSON.parse(l.params) : l.params
         }));
 
+        // Get assigned basemaps
+        const basemapsResult = await db.query(`
+            SELECT b.*, mb.is_default
+            FROM basemaps b
+            JOIN map_basemaps mb ON b.id = mb.basemap_id
+            WHERE mb.map_id = $1
+        `, [id]);
+
         res.json({
             ...map,
             config: typeof map.config === 'string' ? JSON.parse(map.config) : map.config,
-            layers: layers
+            layers: layers,
+            basemaps: basemapsResult.rows
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -70,6 +79,15 @@ router.post('/', authenticateAdmin, async (req, res) => {
                 await db.query(
                     'INSERT INTO map_layers (map_id, layer_id, z_index, opacity, visible) VALUES ($1, $2, $3, $4, $5)',
                     [mapId, l.id, l.z_index || i, l.opacity || 1.0, l.visible !== false ? 1 : 0]
+                );
+            }
+        }
+
+        if (req.body.basemaps && req.body.basemaps.length > 0) {
+            for (const b of req.body.basemaps) {
+                await db.query(
+                    'INSERT INTO map_basemaps (map_id, basemap_id, is_default) VALUES ($1, $2, $3)',
+                    [mapId, b.id, b.is_default ? 1 : 0]
                 );
             }
         }
@@ -112,6 +130,17 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
             }
         }
 
+        // Replace basemaps
+        await db.query('DELETE FROM map_basemaps WHERE map_id = $1', [id]);
+        if (req.body.basemaps && req.body.basemaps.length > 0) {
+            for (const b of req.body.basemaps) {
+                await db.query(
+                    'INSERT INTO map_basemaps (map_id, basemap_id, is_default) VALUES ($1, $2, $3)',
+                    [id, b.id, b.is_default ? 1 : 0]
+                );
+            }
+        }
+
         await db.query('COMMIT');
 
         const result = await db.query('SELECT * FROM maps WHERE id = $1', [id]);
@@ -133,6 +162,67 @@ router.delete('/:id', authenticateAdmin, async (req, res) => {
         await db.query('DELETE FROM maps WHERE id = $1', [id]);
         res.status(204).send();
     } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Clone a map
+router.post('/:id/clone', authenticateAdmin, async (req, res) => {
+    const { id } = req.params;
+    const newMapId = uuidv4();
+
+    try {
+        await db.query('BEGIN TRANSACTION');
+
+        // Fetch original map
+        const mapResult = await db.query('SELECT * FROM maps WHERE id = $1', [id]);
+        if (mapResult.rows.length === 0) {
+            await db.query('ROLLBACK');
+            return res.status(404).json({ error: 'Map not found' });
+        }
+        const originalMap = mapResult.rows[0];
+
+        // Create duplicate map
+        await db.query(
+            'INSERT INTO maps (id, title, description, config, projection) VALUES ($1, $2, $3, $4, $5)',
+            [
+                newMapId,
+                `${originalMap.title} - Copy`,
+                originalMap.description,
+                originalMap.config, // Already string in DB
+                originalMap.projection
+            ]
+        );
+
+        // Copy Layers
+        const layersResult = await db.query('SELECT * FROM map_layers WHERE map_id = $1', [id]);
+        for (const layer of layersResult.rows) {
+            await db.query(
+                'INSERT INTO map_layers (map_id, layer_id, z_index, opacity, visible) VALUES ($1, $2, $3, $4, $5)',
+                [newMapId, layer.layer_id, layer.z_index, layer.opacity, layer.visible]
+            );
+        }
+
+        // Copy Basemaps
+        const basemapsResult = await db.query('SELECT * FROM map_basemaps WHERE map_id = $1', [id]);
+        for (const basemap of basemapsResult.rows) {
+            await db.query(
+                'INSERT INTO map_basemaps (map_id, basemap_id, is_default) VALUES ($1, $2, $3)',
+                [newMapId, basemap.basemap_id, basemap.is_default]
+            );
+        }
+
+        await db.query('COMMIT');
+
+        const result = await db.query('SELECT * FROM maps WHERE id = $1', [newMapId]);
+        const newMap = result.rows[0];
+        if (newMap) {
+            newMap.config = typeof newMap.config === 'string' ? JSON.parse(newMap.config) : newMap.config;
+        }
+        res.status(201).json(newMap);
+
+    } catch (err) {
+        try { await db.query('ROLLBACK'); } catch (e) { }
         res.status(500).json({ error: err.message });
     }
 });
