@@ -11,6 +11,23 @@ import MousePosition from 'ol/control/MousePosition';
 import { createStringXY } from 'ol/coordinate';
 import { defaults as defaultControls } from 'ol/control';
 
+// Layer Registry & Providers
+import { layerRegistry } from './layer-registry';
+import { OSMProvider } from './layers/providers/OSMProvider';
+import { WMSProvider } from './layers/providers/WMSProvider';
+import { XYZProvider } from './layers/providers/XYZProvider';
+import { WFSProvider } from './layers/providers/WFSProvider';
+import { ArcGISRestProvider } from './layers/providers/ArcGISRestProvider';
+import { WMTSProvider } from './layers/providers/WMTSProvider';
+
+// Register Standard Providers
+layerRegistry.register(OSMProvider);
+layerRegistry.register(WMSProvider);
+layerRegistry.register(XYZProvider);
+layerRegistry.register(WFSProvider);
+layerRegistry.register(ArcGISRestProvider);
+layerRegistry.register(WMTSProvider);
+
 // Common Projections Registration
 proj4.defs("EPSG:2056", "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=besel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs");
 proj4.defs("EPSG:21781", "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=600000 +y_0=200000 +ellps=besel +towgs84=674.4,15.1,405.3,0,0,0,0 +units=m +no_defs");
