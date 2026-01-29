@@ -10,7 +10,9 @@ const KeyManagement = () => {
     const [formData, setFormData] = useState({
         app_name: '',
         map_ids: [],
-        is_active: true
+        is_active: true,
+        allowed_hosts: '',
+        expires_at: null
     });
     const [mapSearch, setMapSearch] = useState('');
     const [loading, setLoading] = useState(false);
@@ -57,14 +59,18 @@ const KeyManagement = () => {
             setFormData({
                 app_name: key.app_name,
                 map_ids: key.map_ids || [],
-                is_active: key.is_active === 1 || key.is_active === true
+                is_active: key.is_active === 1 || key.is_active === true,
+                allowed_hosts: key.allowed_hosts || '',
+                expires_at: key.expires_at || null
             });
         } else {
             setEditingKey(null);
             setFormData({
                 app_name: '',
                 map_ids: [],
-                is_active: true
+                is_active: true,
+                allowed_hosts: '',
+                expires_at: null
             });
             setMapSearch('');
         }
@@ -262,15 +268,15 @@ const KeyManagement = () => {
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsModalOpen(false)} />
-                    <div className="bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl relative animate-in zoom-in duration-300">
-                        <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                    <div className="bg-white w-full max-w-md max-h-[90vh] flex flex-col rounded-[32px] overflow-hidden shadow-2xl relative animate-in zoom-in duration-300">
+                        <div className="p-8 border-b border-slate-100 flex items-center justify-between shrink-0">
                             <div>
                                 <h3 className="text-2xl font-bold text-slate-800">{editingKey ? 'Configure Key' : 'Generate Key'}</h3>
                                 <p className="text-sm text-slate-500 mt-1 font-medium">{editingKey ? 'Manage existing identity access.' : 'Issue a new security identity.'}</p>
                             </div>
                             <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all"><X size={24} /></button>
                         </div>
-                        <form onSubmit={handleSubmit} className="p-8 flex flex-col gap-6">
+                        <form onSubmit={handleSubmit} className="p-8 flex flex-col gap-6 overflow-y-auto custom-scrollbar flex-1">
                             <div className="flex flex-col gap-2">
                                 <label className="text-sm font-bold text-slate-700 ml-1">Application Identifier</label>
                                 <input
@@ -366,6 +372,37 @@ const KeyManagement = () => {
                                     </div>
                                 </label>
                             )}
+
+                            {/* Security Enhancements */}
+                            <div className="flex flex-col gap-4 pt-4 border-t border-slate-100">
+                                <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
+                                    <ShieldCheck size={16} className="text-blue-500" />
+                                    Security Restrictions
+                                </label>
+
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-xs font-bold text-slate-500 ml-1">Allowed Hosts (Domains)</label>
+                                    <input
+                                        type="text"
+                                        value={formData.allowed_hosts || ''}
+                                        onChange={e => setFormData({ ...formData, allowed_hosts: e.target.value })}
+                                        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-mono text-xs"
+                                        placeholder="e.g. example.com, localhost"
+                                    />
+                                    <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Comma-separated domains. Leave empty for unrestricted access.</p>
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-xs font-bold text-slate-500 ml-1">Expiration Date</label>
+                                    <input
+                                        type="datetime-local"
+                                        value={formData.expires_at ? new Date(formData.expires_at).toISOString().slice(0, 16) : ''}
+                                        onChange={e => setFormData({ ...formData, expires_at: e.target.value })}
+                                        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium text-sm"
+                                    />
+                                    <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Optional. Key acts as valid until this timestamp.</p>
+                                </div>
+                            </div>
 
                             <button
                                 type="submit"

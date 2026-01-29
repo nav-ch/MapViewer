@@ -37,15 +37,15 @@ router.get('/', authenticateAdmin, async (req, res) => {
 
 // Create an API key
 router.post('/', authenticateAdmin, async (req, res) => {
-    const { app_name, map_ids = [] } = req.body; // Expect map_ids array
+    const { app_name, map_ids = [], expires_at = null, allowed_hosts = '' } = req.body;
     const id = uuidv4();
     const key = uuidv4();
 
     try {
         // Insert into api_keys
         await db.query(
-            'INSERT INTO api_keys (id, key, app_name, is_active) VALUES (?, ?, ?, ?)',
-            [id, key, app_name, 1]
+            'INSERT INTO api_keys (id, key, app_name, is_active, expires_at, allowed_hosts) VALUES (?, ?, ?, ?, ?, ?)',
+            [id, key, app_name, 1, expires_at, allowed_hosts]
         );
 
         // Insert into api_key_maps
@@ -85,13 +85,13 @@ router.post('/', authenticateAdmin, async (req, res) => {
 // Update an API key
 router.put('/:id', authenticateAdmin, async (req, res) => {
     const { id } = req.params;
-    const { app_name, map_ids = [], is_active } = req.body;
+    const { app_name, map_ids = [], is_active, expires_at, allowed_hosts } = req.body;
 
     try {
         // Update main record
         await db.query(
-            'UPDATE api_keys SET app_name = ?, is_active = ? WHERE id = ?',
-            [app_name, is_active ? 1 : 0, id]
+            'UPDATE api_keys SET app_name = ?, is_active = ?, expires_at = ?, allowed_hosts = ? WHERE id = ?',
+            [app_name, is_active ? 1 : 0, expires_at, allowed_hosts, id]
         );
 
         // Update maps: Delete all existing and re-insert

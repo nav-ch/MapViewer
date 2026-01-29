@@ -428,7 +428,7 @@ const LayerManagement = () => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsModalOpen(false)} />
                     <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[32px] overflow-hidden shadow-2xl relative animate-in zoom-in duration-300 flex flex-col">
-                        <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                        <div className="p-8 border-b border-slate-100 flex items-center justify-between shrink-0">
                             <div>
                                 <h3 className="text-2xl font-bold text-slate-800">{editingLayer ? 'Update Layer' : 'New Data Layer'}</h3>
                                 <p className="text-sm text-slate-500 mt-1 font-medium">Define the geospatial service properties.</p>

@@ -1,0 +1,1 @@
+2026-01-29T19:16:36.095Z: PUT /keys/demo_key_uuid - Body: {"app_name":"External Demo App","map_ids":["161744af-1da0-4aee-979a-075c02162fec","608a2639-f880-4d0c-ab2e-1ae576e18aa2","m1"],"is_active":true,"allowed_hosts":"http://localhost:5173","expires_at":null}
