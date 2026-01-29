@@ -127,6 +127,11 @@ const LayerManagement = () => {
                 const projections = Array.from(new Set(Array.from(srsNodes).map(n => n.textContent))).filter(p => p.startsWith('EPSG:'));
                 setDiscoveredProjections(projections);
 
+                // Extract formats
+                const formatNodes = xml.querySelectorAll('GetMap > Format');
+                const formats = Array.from(new Set(Array.from(formatNodes).map(n => n.textContent)));
+                setFormData(prev => ({ ...prev, discoveredFormats: formats }));
+
                 const layerNodes = xml.querySelectorAll('Layer > Name');
                 const found = Array.from(layerNodes).map(node => {
                     const layerNode = node.parentElement;
@@ -141,6 +146,9 @@ const LayerManagement = () => {
 
                 if (projections.length > 0 && !formData.projection) {
                     setFormData(prev => ({ ...prev, projection: projections[0] }));
+                }
+                if (formats.length > 0 && !formData.params.format) {
+                    setFormData(prev => ({ ...prev, params: { ...prev.params, format: formats[0] } }));
                 }
             } else if (formData.type === 'ArcGIS_Rest') {
                 const res = await axios.get(`${proxyBase}?url=${encodeURIComponent(targetUrl)}&f=json`, { responseType: 'arraybuffer' });
@@ -171,6 +179,18 @@ const LayerManagement = () => {
                 const projections = Array.from(new Set(Array.from(srsNodes).map(n => n.textContent))).filter(p => p.startsWith('EPSG:'));
                 setDiscoveredProjections(projections);
 
+                // Extract formats (OutputFormat)
+                // Usually under Operation[name="GetFeature"] > Parameter[name="outputFormat"] > Value
+                // Simplified check for common nodes
+                const formatNodes = xml.querySelectorAll('Operation[name="GetFeature"] Parameter[name="outputFormat"] Value, Operation[name="GetFeature"] > Parameter[name="outputFormat"] > Value');
+                let formats = Array.from(new Set(Array.from(formatNodes).map(n => n.textContent)));
+
+                // Fallback for older WFS or different structures
+                if (formats.length === 0) {
+                    formats = ['application/json', 'text/xml; subtype=gml/3.1.1', 'GML2'];
+                }
+                setFormData(prev => ({ ...prev, discoveredFormats: formats }));
+
                 const typeNodes = xml.querySelectorAll('FeatureType > Name');
                 const found = Array.from(typeNodes).map(node => ({
                     name: node.textContent,
@@ -180,6 +200,9 @@ const LayerManagement = () => {
 
                 if (projections.length > 0 && !formData.projection) {
                     setFormData(prev => ({ ...prev, projection: projections[0] }));
+                }
+                if (formats.includes('application/json') || formats.includes('json')) {
+                    setFormData(prev => ({ ...prev, params: { ...prev.params, outputFormat: 'application/json' } }));
                 }
             }
         } catch (err) {
@@ -608,6 +631,53 @@ const LayerManagement = () => {
                                 />
                                 <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Direct link to a legend image or GetLegendGraphic request.</p>
                             </div>
+
+                            {/* Format Selection */}
+                            {(formData.type === 'WMS' || formData.type === 'WFS') && (
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-bold text-slate-700 ml-1 tracking-tight">Output Format</label>
+                                    <div className="relative">
+                                        <select
+                                            value={formData.type === 'WMS' ? (formData.params?.format || 'image/png') : (formData.params?.outputFormat || 'application/json')}
+                                            onChange={e => {
+                                                const key = formData.type === 'WMS' ? 'format' : 'outputFormat';
+                                                setFormData({
+                                                    ...formData,
+                                                    params: { ...formData.params, [key]: e.target.value }
+                                                });
+                                            }}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 cursor-pointer appearance-none transition-all font-medium"
+                                        >
+                                            {formData.discoveredFormats && formData.discoveredFormats.length > 0 ? (
+                                                formData.discoveredFormats.map(f => <option key={f} value={f}>{f}</option>)
+                                            ) : (
+                                                <>
+                                                    <option value={formData.type === 'WMS' ? 'image/png' : 'application/json'}>Default ({formData.type === 'WMS' ? 'image/png' : 'application/json'})</option>
+                                                    {formData.type === 'WMS' && <option value="image/jpeg">image/jpeg</option>}
+                                                    {formData.type === 'WFS' && <option value="GML2">GML2</option>}
+                                                </>
+                                            )}
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Styling JSON */}
+                            {(formData.type === 'WFS' || formData.type === 'GeoJSON') && (
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-bold text-slate-700 ml-1 tracking-tight">Vector Styling (JSON)</label>
+                                    <textarea
+                                        value={typeof formData.params?.style === 'object' ? JSON.stringify(formData.params.style, null, 2) : (formData.params?.style || '')}
+                                        onChange={e => setFormData({
+                                            ...formData,
+                                            params: { ...formData.params, style: e.target.value }
+                                        })}
+                                        className="h-32 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 font-mono text-xs transition-all"
+                                        placeholder='{"fill": {"color": "rgba(255,0,0,0.5)"}, "stroke": {"color": "red", "width": 2}}'
+                                    />
+                                    <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Simple JSON config for fill, stroke, and radii.</p>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <label className="flex items-center gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-100 cursor-pointer hover:border-blue-200 hover:bg-blue-50/50 transition-all">

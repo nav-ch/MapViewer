@@ -13,6 +13,7 @@ export const WMSProvider = {
         fields: [
             { name: 'url', type: 'url', label: 'Service URL', required: true },
             { name: 'layers', type: 'string', label: 'Layers (comma-separated)', required: true },
+            { name: 'format', type: 'string', label: 'Image Format', default: 'image/png' },
             { name: 'tiled', type: 'boolean', label: 'Tiled (Pre-cached)', default: true },
             { name: 'legend_url', type: 'url', label: 'Legend URL' },
             { name: 'use_proxy', type: 'boolean', label: 'Use Proxy', default: false },
@@ -33,6 +34,7 @@ export const WMSProvider = {
         const wmsParams = {
             ...(typeof params === 'object' ? params : {}),
             'LAYERS': params?.layers || '',
+            'FORMAT': params?.format || 'image/png',
             'TILED': isTiled,
             'TRANSPARENT': true
         };
