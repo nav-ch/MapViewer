@@ -9,9 +9,10 @@ const KeyManagement = () => {
     const [editingKey, setEditingKey] = useState(null);
     const [formData, setFormData] = useState({
         app_name: '',
-        map_id: '',
+        map_ids: [],
         is_active: true
     });
+    const [mapSearch, setMapSearch] = useState('');
     const [loading, setLoading] = useState(false);
     const [copiedId, setCopiedId] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -55,16 +56,17 @@ const KeyManagement = () => {
             setEditingKey(key);
             setFormData({
                 app_name: key.app_name,
-                map_id: key.map_id || '',
+                map_ids: key.map_ids || [],
                 is_active: key.is_active === 1 || key.is_active === true
             });
         } else {
             setEditingKey(null);
             setFormData({
                 app_name: '',
-                map_id: '',
+                map_ids: [],
                 is_active: true
             });
+            setMapSearch('');
         }
         setIsModalOpen(true);
     };
@@ -170,18 +172,32 @@ const KeyManagement = () => {
                                         </div>
                                     </td>
                                     <td className="px-8 py-6">
-                                        {k.map_id ? (
-                                            <div className="flex items-center gap-2 text-slate-600">
-                                                <div className="w-6 h-6 rounded-md bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                                    <Globe size={12} />
+                                        <td className="px-8 py-6">
+                                            {k.map_ids && k.map_ids.length > 0 ? (
+                                                <div className="flex flex-col gap-1.5">
+                                                    <div className="flex items-center gap-2 text-slate-600">
+                                                        <div className="w-6 h-6 rounded-md bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                                                            <Globe size={12} />
+                                                        </div>
+                                                        <span className="text-sm font-bold truncate max-w-[200px]">
+                                                            {k.map_titles && k.map_titles[0] ? k.map_titles[0] : 'Unknown Map'}
+                                                        </span>
+                                                    </div>
+                                                    {k.map_ids.length > 1 && (
+                                                        <div className="pl-8">
+                                                            <span className="text-xs font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                                                + {k.map_ids.length - 1} more maps
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <span className="text-sm font-bold truncate max-w-[150px]">{k.map_title || 'Linked Map'}</span>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center gap-2 text-slate-300 italic text-sm">
-                                                <span>Global Access</span>
-                                            </div>
-                                        )}
+                                            ) : (
+                                                <div className="flex items-center gap-2 text-emerald-600 italic text-sm font-medium">
+                                                    <Globe size={14} />
+                                                    <span>Global Access</span>
+                                                </div>
+                                            )}
+                                        </td>
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-3">
@@ -267,18 +283,70 @@ const KeyManagement = () => {
                                 />
                             </div>
 
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm font-bold text-slate-700 ml-1">Authorize for Specific Map</label>
-                                <select
-                                    value={formData.map_id}
-                                    onChange={e => setFormData({ ...formData, map_id: e.target.value })}
-                                    className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 cursor-pointer transition-all font-medium"
-                                >
-                                    <option value="">Full System Access (Global)</option>
-                                    {maps.map(m => (
-                                        <option key={m.id} value={m.id}>{m.title}</option>
-                                    ))}
-                                </select>
+                            <div className="flex flex-col gap-3">
+                                <label className="text-sm font-bold text-slate-700 ml-1">Map Authorization</label>
+
+                                <div className="flex bg-slate-100 p-1 rounded-xl mb-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, map_ids: [] })}
+                                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${formData.map_ids.length === 0 ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    >
+                                        Global Access
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (formData.map_ids.length === 0 && maps.length > 0) {
+                                                setFormData({ ...formData, map_ids: [maps[0].id] });
+                                            }
+                                        }}
+                                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${formData.map_ids.length > 0 ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    >
+                                        Selected Maps
+                                    </button>
+                                </div>
+
+                                {formData.map_ids.length > 0 && (
+                                    <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                                        <div className="p-3 border-b border-slate-100 bg-slate-50 flex items-center gap-2 sticky top-0">
+                                            <Search size={16} className="text-slate-400" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search maps..."
+                                                className="bg-transparent outline-none text-sm w-full font-medium text-slate-700 placeholder:text-slate-400"
+                                                value={mapSearch}
+                                                onChange={e => setMapSearch(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="max-h-48 overflow-y-auto p-2 scrollbar-thin">
+                                            {maps.filter(m => m.title.toLowerCase().includes(mapSearch.toLowerCase())).map(m => (
+                                                <label key={m.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer group transition-colors">
+                                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${formData.map_ids.includes(m.id) ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white group-hover:border-blue-400'}`}>
+                                                        {formData.map_ids.includes(m.id) && <Check size={12} className="text-white" strokeWidth={3} />}
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="hidden"
+                                                        checked={formData.map_ids.includes(m.id)}
+                                                        onChange={() => {
+                                                            const newIds = formData.map_ids.includes(m.id)
+                                                                ? formData.map_ids.filter(id => id !== m.id)
+                                                                : [...formData.map_ids, m.id];
+                                                            // If all deselected, it becomes global automatically unless we want to enforce "at least one" when in this mode.
+                                                            // For better UX, if newIds is empty, we effectively switched to Global.
+                                                            setFormData({ ...formData, map_ids: newIds });
+                                                        }}
+                                                    />
+                                                    <span className={`text-sm font-medium transition-colors ${formData.map_ids.includes(m.id) ? 'text-blue-700' : 'text-slate-600'}`}>{m.title}</span>
+                                                </label>
+                                            ))}
+                                            {maps.filter(m => m.title.toLowerCase().includes(mapSearch.toLowerCase())).length === 0 && (
+                                                <p className="p-4 text-center text-xs font-bold text-slate-400">No maps match search</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {editingKey && (

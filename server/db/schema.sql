@@ -49,3 +49,11 @@ CREATE TABLE IF NOT EXISTS api_keys (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Junction table for API Keys and Maps
+CREATE TABLE IF NOT EXISTS api_key_maps (
+    api_key_id UUID REFERENCES api_keys(id) ON DELETE CASCADE,
+    map_id UUID REFERENCES maps(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (api_key_id, map_id)
+);

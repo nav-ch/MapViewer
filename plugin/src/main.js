@@ -312,8 +312,8 @@ class MapViewer extends HTMLElement {
                 }
                 .panel.show { opacity: 1; pointer-events: auto; transform: scale(1) translateY(0); }
                 
-                .layer-panel { top: 76px; right: 20px; width: 300px; max-height: calc(100% - 160px); display: flex; flex-direction: column; }
-                .basemap-panel { bottom: 76px; right: 20px; padding: 16px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 180px; }
+                .layer-panel { top: 76px; right: 10px; width: 300px; max-height: calc(100% - 160px); display: flex; flex-direction: column; }
+                .basemap-panel { bottom: 80px; right: 10px; padding: 16px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 260px; max-width: calc(100vw - 20px); }
                 
                 .panel-header { padding: 16px; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; }
                 .layer-list { flex: 1; overflow-y: auto; padding: 12px; }

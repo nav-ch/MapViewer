@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Globe, Server, Database, X, Check, Loader2, Search, Settings } from 'lucide-react';
-import { fetchBasemaps, createBasemap, updateBasemap, deleteBasemap } from '../api';
+import { Plus, Trash2, Edit2, Globe, Server, Database, X, Check, Loader2, Search, Settings, RefreshCw } from 'lucide-react';
+import { fetchBasemaps, createBasemap, updateBasemap, deleteBasemap, API_URL } from '../api';
+import WMTSCapabilities from 'ol/format/WMTSCapabilities';
+import { optionsFromCapabilities } from 'ol/source/WMTS';
 
-const BASEMAP_TYPES = ['XYZ', 'WMS', 'ArcGIS_Rest', 'OSM'];
+const BASEMAP_TYPES = ['XYZ', 'WMS', 'WMTS', 'ArcGIS_Rest', 'OSM'];
 
 const BasemapManagement = () => {
     const [basemaps, setBasemaps] = useState([]);
@@ -16,6 +18,9 @@ const BasemapManagement = () => {
         params: {}
     });
     const [loading, setLoading] = useState(false);
+    const [wmtsLayers, setWmtsLayers] = useState([]);
+    const [wmtsParsedResult, setWmtsParsedResult] = useState(null);
+    const [loadingCapabilities, setLoadingCapabilities] = useState(false);
 
     useEffect(() => {
         loadBasemaps();
@@ -34,6 +39,7 @@ const BasemapManagement = () => {
     };
 
     const handleOpenModal = (basemap = null) => {
+        setWmtsLayers([]);
         if (basemap) {
             setEditingBasemap(basemap);
             setFormData({
@@ -78,6 +84,97 @@ const BasemapManagement = () => {
         } catch (err) {
             alert('Failed to delete basemap: ' + err.message);
         }
+    };
+
+    const fetchWmtsCapabilities = async () => {
+        if (!formData.url) return;
+        setLoadingCapabilities(true);
+        try {
+            // Use proxy to avoid CORS
+            const proxyUrl = `${API_URL}/proxy?url=${encodeURIComponent(formData.url)}`;
+            const response = await fetch(proxyUrl);
+            const text = await response.text();
+
+            const parser = new WMTSCapabilities();
+            const result = parser.read(text);
+
+            if (result && result.Contents && result.Contents.Layer) {
+                setWmtsParsedResult(result);
+                setWmtsLayers(result.Contents.Layer);
+                // Auto-select first if not set
+                // const firstLayer = result.Contents.Layer[0];
+                // if (firstLayer) selectWmtsLayer(firstLayer);
+            } else {
+                alert('No layers found in WMTS Capabilities');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Failed to fetch capabilities: ' + error.message);
+        } finally {
+            setLoadingCapabilities(false);
+        }
+    };
+
+    const selectWmtsLayer = (layer) => {
+        // Find best MatrixSet (EPSG:3857 or GoogleMapsCompatible)
+        const preferredSets = ['EPSG:3857', 'GoogleMapsCompatible', 'PM', '3857'];
+        let selectedMatrixSet = layer.TileMatrixSetLink?.[0]?.TileMatrixSet;
+
+        // Try to find a preferred one
+        if (layer.TileMatrixSetLink) {
+            const found = layer.TileMatrixSetLink.find(link =>
+                preferredSets.some(pref => link.TileMatrixSet?.includes(pref))
+            );
+            if (found) selectedMatrixSet = found.TileMatrixSet;
+        }
+
+        let extractedParams = {};
+
+        // Use optionsFromCapabilities to get exact config
+        if (wmtsParsedResult) {
+            try {
+                const options = optionsFromCapabilities(wmtsParsedResult, {
+                    layer: layer.Identifier,
+                    matrixSet: selectedMatrixSet
+                });
+
+                if (options) {
+                    // Extract TileGrid info to simple JSON arrays
+                    const tileGrid = options.tileGrid;
+                    if (tileGrid) {
+                        extractedParams.matrixIds = tileGrid.getMatrixIds();
+                        extractedParams.resolutions = tileGrid.getResolutions();
+                        // Origin might be needed too, but let's assume standard top-left or try to extract
+                        // tileGrid.getOrigin() returns coordinate.
+                        extractedParams.origin = tileGrid.getOrigin(0); // usually 0
+                    }
+
+                    // Also URL might be different (RESTful)
+                    if (options.urls && options.urls.length > 0) {
+                        // We prefer to keep the base URL, but let's see.
+                        // Actually, let's keep the user provided URL as the "Base" or update it?
+                        // If we update it, we might break subsequent edits.
+                        // For now, let's just save the params.
+                    }
+                }
+            } catch (e) {
+                console.error("Error extracting options:", e);
+            }
+        }
+
+        const newParams = {
+            layer: layer.Identifier,
+            style: layer.Style?.[0]?.Identifier || 'default',
+            matrixSet: selectedMatrixSet,
+            format: layer.Format?.[0] || 'image/png',
+            ...extractedParams
+        };
+
+        setFormData(prev => ({
+            ...prev,
+            name: prev.name || layer.Title || layer.Identifier,
+            params: newParams
+        }));
     };
 
     const filteredBasemaps = basemaps.filter(b =>
@@ -196,14 +293,69 @@ const BasemapManagement = () => {
 
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Service URL</label>
+                                <div className="flex gap-2">
+                                    <textarea
+                                        required
+                                        rows={2}
+                                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-mono text-sm"
+                                        placeholder="e.g. https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                        value={formData.url}
+                                        onChange={e => setFormData({ ...formData, url: e.target.value })}
+                                    />
+                                    {formData.type === 'WMTS' && (
+                                        <button
+                                            type="button"
+                                            onClick={fetchWmtsCapabilities}
+                                            disabled={loadingCapabilities || !formData.url}
+                                            className="px-4 bg-slate-100 text-slate-600 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 rounded-xl font-bold transition-all flex flex-col items-center justify-center gap-1 min-w-[80px]"
+                                        >
+                                            {loadingCapabilities ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
+                                            <span className="text-[10px]">Fetch</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* WMTS Layer Selection */}
+                            {formData.type === 'WMTS' && wmtsLayers.length > 0 && (
+                                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-4">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Select Layer</label>
+                                    <select
+                                        className="w-full px-4 py-3 bg-blue-50 text-blue-900 border border-blue-200 rounded-xl outline-none font-medium cursor-pointer"
+                                        onChange={(e) => {
+                                            const layer = wmtsLayers.find(l => l.Identifier === e.target.value);
+                                            if (layer) selectWmtsLayer(layer);
+                                        }}
+                                        value={formData.params?.layer || ''}
+                                    >
+                                        <option value="">-- Choose a Layer --</option>
+                                        {wmtsLayers.map(l => (
+                                            <option key={l.Identifier} value={l.Identifier}>
+                                                {l.Title || l.Identifier}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Params JSON Editor */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Parameters (JSON)</label>
                                 <textarea
-                                    required
-                                    rows={2}
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-mono text-sm"
-                                    placeholder="e.g. https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                    value={formData.url}
-                                    onChange={e => setFormData({ ...formData, url: e.target.value })}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-mono text-xs"
+                                    rows={4}
+                                    value={JSON.stringify(formData.params, null, 2)}
+                                    onChange={e => {
+                                        try {
+                                            setFormData({ ...formData, params: JSON.parse(e.target.value) });
+                                        } catch (e) {
+                                            // Handle invalid JSON typing
+                                        }
+                                    }}
                                 />
+                                <p className="text-[10px] text-slate-400 px-1">
+                                    For WMTS: {`{"layer": "...", "style": "...", "matrixSet": "...", "format": "..."}`}
+                                </p>
                             </div>
 
                             <div className="pt-4 border-t border-slate-100 flex gap-3 justify-end sticky bottom-0 bg-white">

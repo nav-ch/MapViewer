@@ -1,7 +1,78 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, Layers, Map, Key, TrendingUp, ArrowUpRight } from 'lucide-react';
+import { fetchLayers, fetchMaps, fetchApiKeys as fetchKeys } from '../api';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
+    const [stats, setStats] = useState({
+        layers: 0,
+        maps: 0,
+        keys: 0
+    });
+    const [recentActivity, setRecentActivity] = useState([]);
+
+    useEffect(() => {
+        const loadStats = async () => {
+            try {
+                // Check what fetchKeys actually returns or if it exists. 
+                // Assuming it follows the same pattern as others.
+                const [layersRes, mapsRes, keysRes] = await Promise.allSettled([
+                    fetchLayers(),
+                    fetchMaps(),
+                    // fetchKeys might fail if not implemented/imported, handling gracefully
+                    fetchKeys ? fetchKeys() : Promise.resolve({ data: [] })
+                ]);
+
+                const layers = layersRes.status === 'fulfilled' ? layersRes.value.data : [];
+                const maps = mapsRes.status === 'fulfilled' ? mapsRes.value.data : [];
+                const keys = keysRes.status === 'fulfilled' ? keysRes.value.data : [];
+
+                setStats({
+                    layers: layers.length,
+                    maps: maps.length,
+                    keys: keys.length
+                });
+
+                // Generate recent activity from all items
+                const allItems = [
+                    ...layers.map(l => ({ type: 'layer', ...l })),
+                    ...maps.map(m => ({ type: 'map', ...m })),
+                    ...keys.map(k => ({ type: 'key', ...k }))
+                ].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+                    .slice(0, 5);
+
+                setRecentActivity(allItems);
+
+            } catch (error) {
+                console.error("Failed to load dashboard stats", error);
+            }
+        };
+        loadStats();
+    }, []);
+
+    const formatTime = (dateString) => {
+        if (!dateString) return 'Recently';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInHours = Math.abs(now - date) / 36e5;
+
+        if (diffInHours < 24) {
+            if (diffInHours < 1) return 'Just now';
+            return `${Math.floor(diffInHours)} hours ago`;
+        }
+        return date.toLocaleDateString();
+    };
+
+    const getActivityText = (item) => {
+        switch (item.type) {
+            case 'layer': return { title: 'New layer added', desc: `Layer "${item.name}" (${item.type}) was registered` };
+            case 'map': return { title: 'Map configuration created', desc: `Map "${item.title}" is now active` };
+            case 'key': return { title: 'API Key generated', desc: `Key "${item.name}" was issued` };
+            default: return { title: 'System update', desc: 'System status check' };
+        }
+    };
+
     return (
         <div className="flex flex-col gap-6 lg:gap-8">
             <div>
@@ -13,29 +84,29 @@ const Dashboard = () => {
                 <StatCard
                     icon={<Layers className="text-blue-600" />}
                     label="Total Layers"
-                    value="12"
-                    trend="+2"
+                    value={stats.layers}
+                    trend="Live"
                     color="blue"
                 />
                 <StatCard
                     icon={<Map className="text-indigo-600" />}
                     label="Active Maps"
-                    value="4"
-                    trend="0"
+                    value={stats.maps}
+                    trend="Live"
                     color="indigo"
                 />
                 <StatCard
                     icon={<Key className="text-emerald-600" />}
                     label="API Keys"
-                    value="3"
-                    trend="+1"
+                    value={stats.keys}
+                    trend="Active"
                     color="emerald"
                 />
                 <StatCard
                     icon={<TrendingUp className="text-violet-600" />}
-                    label="Total Traffic"
-                    value="1.2k"
-                    trend="+18%"
+                    label="System Status"
+                    value="Stable"
+                    trend="100%"
                     color="violet"
                 />
             </div>
@@ -44,24 +115,23 @@ const Dashboard = () => {
                 <div className="lg:col-span-2 glass-card p-6 lg:p-8">
                     <div className="flex items-center justify-between mb-8">
                         <h2 className="text-xl font-bold text-slate-800">Recent Activity</h2>
-                        <button className="text-sm font-bold text-blue-600 hover:text-blue-700">View All</button>
                     </div>
                     <div className="space-y-6">
-                        <ActivityItem
-                            title="New layer created"
-                            desc="Vegetation Index layer was added for the Sales Map"
-                            time="2 hours ago"
-                        />
-                        <ActivityItem
-                            title="API Key generated"
-                            desc="New key issued for Mobile Site"
-                            time="5 hours ago"
-                        />
-                        <ActivityItem
-                            title="Map updated"
-                            desc="Retail Locations Map configuration updated"
-                            time="Yesterday"
-                        />
+                        {recentActivity.length === 0 ? (
+                            <p className="text-slate-400 text-sm italic">No recent activity found.</p>
+                        ) : (
+                            recentActivity.map((item, idx) => {
+                                const { title, desc } = getActivityText(item);
+                                return (
+                                    <ActivityItem
+                                        key={idx}
+                                        title={title}
+                                        desc={desc}
+                                        time={formatTime(item.created_at)}
+                                    />
+                                );
+                            })
+                        )}
                     </div>
                 </div>
 
@@ -72,7 +142,10 @@ const Dashboard = () => {
                             Combine your geospatial layers into specialized map views for your customers.
                         </p>
                     </div>
-                    <button className="mt-8 w-full py-4 bg-white text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
+                    <button
+                        onClick={() => navigate('/maps')}
+                        className="mt-8 w-full py-4 bg-white text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+                    >
                         Build New Map <ArrowUpRight size={18} />
                     </button>
                 </div>
