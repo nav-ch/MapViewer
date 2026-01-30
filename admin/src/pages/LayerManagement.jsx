@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Globe, Server, Database, X, Check, Loader2, Layers, Search, Filter, MoreVertical, ArrowUp, ArrowDown, Copy } from 'lucide-react';
 import { fetchLayers, createLayer, updateLayer, deleteLayer, cloneLayer, API_URL } from '../api';
+import StyleEditor from '../components/StyleEditor';
 import axios from 'axios';
 
-const LAYER_TYPES = ['WMS', 'WFS', 'XYZ', 'ArcGIS_Rest', 'WMTS', 'OSM'];
+const LAYER_TYPES = ['WMS', 'WFS', 'XYZ', 'ArcGIS_Rest', 'ArcGIS_Feature_Server', 'WMTS', 'OSM'];
 
 const COMMON_PROJECTIONS = [
     { code: 'EPSG:3857', name: 'Web Mercator (Default)' },
@@ -150,7 +151,7 @@ const LayerManagement = () => {
                 if (formats.length > 0 && !formData.params.format) {
                     setFormData(prev => ({ ...prev, params: { ...prev.params, format: formats[0] } }));
                 }
-            } else if (formData.type === 'ArcGIS_Rest') {
+            } else if (formData.type === 'ArcGIS_Rest' || formData.type === 'ArcGIS_Feature_Server') {
                 const res = await axios.get(`${proxyBase}?url=${encodeURIComponent(targetUrl)}&f=json`, { responseType: 'arraybuffer' });
                 const data = res.data instanceof ArrayBuffer ? JSON.parse(new TextDecoder().decode(res.data)) : res.data;
 
@@ -160,10 +161,23 @@ const LayerManagement = () => {
                     setFormData(prev => ({ ...prev, projection: wkid }));
                 }
 
+                // If it's a specific layer (has fields)
+                if (data.fields) {
+                    const fields = data.fields.map(f => f.name);
+                    setFormData(prev => ({
+                        ...prev,
+                        availableFields: fields,
+                        // Auto-select some fields if empty
+                        params: { ...prev.params, identify_fields: prev.params.identify_fields || fields.slice(0, 5).join(',') }
+                    }));
+                }
+
                 if (data.layers) {
                     setDiscoveredLayers(data.layers.map(l => ({
                         name: String(l.id),
                         title: l.name,
+                        // If it's FeatureServer, constructing the layer URL is useful
+                        layerUrl: targetUrl.endsWith('/') ? `${targetUrl}${l.id}` : `${targetUrl}/${l.id}`,
                         fields: l.fields?.map(f => f.name).join(','),
                         legend_url: targetUrl.endsWith('/') ? `${targetUrl}legend` : `${targetUrl}/legend`
                     })));
@@ -218,6 +232,74 @@ const LayerManagement = () => {
         const layer = discoveredLayers.find(l => l.name === layerName);
         if (!layer) return;
 
+        // Special handling for ArcGIS Feature Server & MapServer (Rest) - Update URL to the specific layer
+        if ((formData.type === 'ArcGIS_Feature_Server' || formData.type === 'ArcGIS_Rest') && layer.layerUrl) {
+            setFormData({
+                ...formData,
+                url: layer.layerUrl, // usage: replace the base URL with the layer URL
+                name: formData.name || layer.title
+            });
+            // Trigger discovery on the new URL to get fields
+            // We can't await state update easily here without useEffect, but user can click discover again
+            // Or we can manually call discover with new URL
+            setTimeout(() => {
+                const proxyBase = `${API_URL}/proxy`;
+                axios.get(`${proxyBase}?url=${encodeURIComponent(layer.layerUrl)}&f=json`).then(res => {
+                    const data = res.data;
+                    if (data.fields) {
+                        const fields = data.fields.map(f => f.name);
+                        setFormData(prev => ({
+                            ...prev,
+                            availableFields: fields,
+                            params: { ...prev.params, identify_fields: fields.slice(0, 5).join(',') }
+                        }));
+                    }
+                });
+            }, 100);
+            return;
+        }
+
+        // Special handling for WMS - Try to discover WFS attributes
+        if (formData.type === 'WMS') {
+            // WMS selection doesn't change the base URL, but we want to fetch attributes
+            // Best effort: Assume WFS is available at same endpoint or by checking DescribeLayer
+            setTimeout(() => {
+                const proxyBase = `${API_URL}/proxy`;
+                // Try WFS DescribeFeatureType on the WMS URL (common for GeoServer/MapServer)
+                // Remove /wms suffix if present and try /wfs? No, usually same endpoint with service=WFS works.
+                let describeUrl = `${formData.url}${formData.url.includes('?') ? '&' : '?'}service=WFS&version=1.1.0&request=DescribeFeatureType&typename=${layerName}`;
+
+                axios.get(`${proxyBase}?url=${encodeURIComponent(describeUrl)}`, { responseType: 'text' })
+                    .then(res => {
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(res.data, "text/xml");
+                        const elements = xmlDoc.querySelectorAll('element, xsd\\:element, xs\\:element');
+                        const fields = [];
+                        elements.forEach(el => {
+                            const name = el.getAttribute('name');
+                            const type = el.getAttribute('type');
+                            if (name && type && !['the_geom', 'geom', 'geometry', 'shape', 'msGeometry'].includes(name) && !type.startsWith('gml:')) {
+                                fields.push(name);
+                            }
+                        });
+                        if (fields.length > 0) {
+                            const uniqueFields = [...new Set(fields)];
+                            setFormData(prev => ({
+                                ...prev,
+                                availableFields: uniqueFields,
+                                // Only auto-set identify fields if empty to avoid overwriting user config
+                                params: {
+                                    ...prev.params,
+                                    // if identify_fields is empty, use first 5 fields
+                                    identify_fields: prev.params?.identify_fields || uniqueFields.slice(0, 5).join(',')
+                                }
+                            }));
+                        }
+                    })
+                    .catch(e => console.warn('WMS Attribute Discovery failed (WFS not found)', e));
+            }, 100);
+        }
+
         const currentLayers = formData.params.layers ? formData.params.layers.split(',').filter(Boolean) : [];
         const isSelected = currentLayers.includes(layerName);
 
@@ -237,13 +319,49 @@ const LayerManagement = () => {
             } else if (formData.type === 'WFS') {
                 try {
                     const proxyBase = `${API_URL}/proxy`;
-                    const res = await axios.get(`${proxyBase}?url=${encodeURIComponent(formData.url)}&service=WFS&request=DescribeFeatureType&typename=${layerName}&outputFormat=application/json`);
-                    let data = res.data;
-                    if (data instanceof ArrayBuffer) data = JSON.parse(new TextDecoder().decode(data));
-                    if (data.featureTypes?.[0]?.properties) {
-                        identifyFields = data.featureTypes[0].properties.map(p => p.name).join(',');
+                    // DescribeFeatureType usually returns XML (XSD) schema
+                    const describeUrl = `${formData.url}${formData.url.includes('?') ? '&' : '?'}service=WFS&version=1.1.0&request=DescribeFeatureType&typename=${layerName}`;
+                    const res = await axios.get(`${proxyBase}?url=${encodeURIComponent(describeUrl)}`, { responseType: 'text' });
+
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(res.data, "text/xml");
+
+                    // Look for element definitions. ComplexTypes define the feature structure.
+                    // Attributes are usually <xsd:element name="propName" type="xsd:string"... /> inside a <complexType> or <sequence>
+                    // Simplistic approach: find all elements with 'name' and 'type' that are NOT the feature type itself
+
+                    // Specific to WFS: look for xsd:element inside xsd:sequence
+                    const elements = xmlDoc.querySelectorAll('element, xsd\\:element, xs\\:element');
+                    const fields = [];
+
+                    elements.forEach(el => {
+                        const name = el.getAttribute('name');
+                        const type = el.getAttribute('type');
+                        // Filter out geometry columns usually named 'the_geom', 'geom', 'geometry', 'shape'
+                        if (name && type && !['the_geom', 'geom', 'geometry', 'shape', 'msGeometry'].includes(name) && !type.startsWith('gml:')) {
+                            fields.push(name);
+                        }
+                    });
+
+                    if (fields.length > 0) {
+                        const uniqueFields = [...new Set(fields)];
+                        setFormData(prev => ({
+                            ...prev,
+                            // Ensure we preserve existing fields if multiple layers selected? 
+                            // Usually WFS layers are single select for style. 
+                            availableFields: uniqueFields,
+                            params: {
+                                ...prev.params,
+                                // Reset identify fields to new layer's fields or append? 
+                                // If switching layer, better reset.
+                                identify_fields: uniqueFields.slice(0, 5).join(',')
+                            }
+                        }));
+                        identifyFields = uniqueFields.slice(0, 5).join(',');
                     }
-                } catch (e) { console.warn('Field discovery failed'); }
+                } catch (e) {
+                    console.warn('WFS Field discovery failed', e);
+                }
             }
         }
 
@@ -602,18 +720,47 @@ const LayerManagement = () => {
                                     placeholder="Manual overrides (comma separated)"
                                 />
                             </div>
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-3">
                                 <label className="text-sm font-bold text-slate-700 ml-1 tracking-tight">Identify Properties</label>
-                                <input
-                                    type="text"
-                                    value={formData.params?.identify_fields || ''}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        params: { ...formData.params, identify_fields: e.target.value }
-                                    })}
-                                    className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium"
-                                    placeholder="e.g. name,capacity,status"
-                                />
+
+                                {formData.availableFields && formData.availableFields.length > 0 ? (
+                                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 max-h-48 overflow-y-auto custom-scrollbar grid grid-cols-2 gap-2">
+                                        {formData.availableFields.map(field => {
+                                            const selected = (formData.params?.identify_fields || '').split(',').includes(field);
+                                            return (
+                                                <label key={field} className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer hover:text-blue-600">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selected}
+                                                        onChange={(e) => {
+                                                            const current = (formData.params?.identify_fields || '').split(',').filter(Boolean);
+                                                            let next;
+                                                            if (e.target.checked) next = [...current, field];
+                                                            else next = current.filter(f => f !== field);
+                                                            setFormData({
+                                                                ...formData,
+                                                                params: { ...formData.params, identify_fields: next.join(',') }
+                                                            });
+                                                        }}
+                                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <span className="truncate" title={field}>{field}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <input
+                                        type="text"
+                                        value={formData.params?.identify_fields || ''}
+                                        onChange={e => setFormData({
+                                            ...formData,
+                                            params: { ...formData.params, identify_fields: e.target.value }
+                                        })}
+                                        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium"
+                                        placeholder="e.g. name,capacity,status"
+                                    />
+                                )}
                                 <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Attribute names to display when a feature is clicked.</p>
                             </div>
 
@@ -632,8 +779,8 @@ const LayerManagement = () => {
                                 <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Direct link to a legend image or GetLegendGraphic request.</p>
                             </div>
 
-                            {/* Format Selection */}
-                            {(formData.type === 'WMS' || formData.type === 'WFS') && (
+                            {/* Format Selection - WMS/WFS/FeatureServer */}
+                            {(formData.type === 'WMS' || formData.type === 'WFS' || formData.type === 'ArcGIS_Feature_Server') && (
                                 <div className="flex flex-col gap-2">
                                     <label className="text-sm font-bold text-slate-700 ml-1 tracking-tight">Output Format</label>
                                     <div className="relative">
@@ -652,9 +799,10 @@ const LayerManagement = () => {
                                                 formData.discoveredFormats.map(f => <option key={f} value={f}>{f}</option>)
                                             ) : (
                                                 <>
-                                                    <option value={formData.type === 'WMS' ? 'image/png' : 'application/json'}>Default ({formData.type === 'WMS' ? 'image/png' : 'application/json'})</option>
+                                                    <option value={formData.type === 'WMS' ? 'image/png' : 'application/json'}>Default ({formData.type === 'WMS' ? 'image/png' : 'json'})</option>
                                                     {formData.type === 'WMS' && <option value="image/jpeg">image/jpeg</option>}
                                                     {formData.type === 'WFS' && <option value="GML2">GML2</option>}
+                                                    {formData.type === 'ArcGIS_Feature_Server' && <option value="json">EsriJSON</option>}
                                                 </>
                                             )}
                                         </select>
@@ -662,20 +810,19 @@ const LayerManagement = () => {
                                 </div>
                             )}
 
-                            {/* Styling JSON */}
-                            {(formData.type === 'WFS' || formData.type === 'GeoJSON') && (
+                            {/* Styling - For ALL Vector Types */}
+                            {(formData.type === 'WFS' || formData.type === 'GeoJSON' || formData.type === 'ArcGIS_Feature_Server' || formData.type === 'ArcGIS_Rest') && (
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-bold text-slate-700 ml-1 tracking-tight">Vector Styling (JSON)</label>
-                                    <textarea
-                                        value={typeof formData.params?.style === 'object' ? JSON.stringify(formData.params.style, null, 2) : (formData.params?.style || '')}
-                                        onChange={e => setFormData({
+                                    <label className="text-sm font-bold text-slate-700 ml-1 tracking-tight">Vector Styling</label>
+                                    <StyleEditor
+                                        value={formData.params?.style}
+                                        onChange={(newStyle) => setFormData({
                                             ...formData,
-                                            params: { ...formData.params, style: e.target.value }
+                                            params: { ...formData.params, style: newStyle }
                                         })}
-                                        className="h-32 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 font-mono text-xs transition-all"
-                                        placeholder='{"fill": {"color": "rgba(255,0,0,0.5)"}, "stroke": {"color": "red", "width": 2}}'
+                                        availableFields={formData.availableFields}
                                     />
-                                    <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Simple JSON config for fill, stroke, and radii.</p>
+                                    <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Customize the appearance of vector features.</p>
                                 </div>
                             )}
 
@@ -746,6 +893,7 @@ const LayerIcon = ({ type }) => {
         case 'WMS': return <Server className="text-blue-600" />;
         case 'WFS': return <Database className="text-indigo-600" />;
         case 'ArcGIS_Rest': return <Globe className="text-emerald-600" />;
+        case 'ArcGIS_Feature_Server': return <Globe className="text-teal-600" />;
         case 'WMTS': return <Layers className="text-violet-600" />;
         case 'OSM': return <Globe className="text-amber-600" />;
         default: return <Database className="text-slate-600" />;

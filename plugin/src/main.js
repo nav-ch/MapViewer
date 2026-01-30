@@ -17,6 +17,7 @@ import { OSMProvider } from './layers/providers/OSMProvider';
 import { WMSProvider } from './layers/providers/WMSProvider';
 import { XYZProvider } from './layers/providers/XYZProvider';
 import { WFSProvider } from './layers/providers/WFSProvider';
+import { ArcGISFeatureServerProvider } from './layers/providers/ArcGISFeatureServerProvider';
 import { ArcGISRestProvider } from './layers/providers/ArcGISRestProvider';
 import { WMTSProvider } from './layers/providers/WMTSProvider';
 
@@ -25,6 +26,7 @@ layerRegistry.register(OSMProvider);
 layerRegistry.register(WMSProvider);
 layerRegistry.register(XYZProvider);
 layerRegistry.register(WFSProvider);
+layerRegistry.register(ArcGISFeatureServerProvider);
 layerRegistry.register(ArcGISRestProvider);
 layerRegistry.register(WMTSProvider);
 
@@ -189,6 +191,18 @@ class MapViewer extends HTMLElement {
 
     // Ensure map resizes correctly
     setTimeout(() => this.map.updateSize(), 100);
+
+    // Stop propagation on overlays to prevent map interaction
+    const stopEvents = (id) => {
+      const el = this.shadowRoot.getElementById(id);
+      if (!el) return;
+      ['pointerdown', 'mousedown', 'touchstart', 'wheel', 'scroll'].forEach(evt => {
+        el.addEventListener(evt, (e) => e.stopPropagation(), { passive: false });
+      });
+    };
+
+    // Attach to containers and triggers
+    ['popup', 'layer-panel', 'basemap-panel', 'trigger-layers', 'trigger-basemaps'].forEach(id => stopEvents(id));
   }
 
   async handleMapClick(evt) {
@@ -243,7 +257,7 @@ class MapViewer extends HTMLElement {
     popup.style.left = `${pixel[0]}px`;
     popup.style.top = `${pixel[1]}px`;
 
-    let content = '<div style="max-height: 200px; overflow-y: auto;">';
+    let content = '<div class="custom-scrollbar" style="max-height: 200px; overflow-y: auto; padding-right: 12px;">';
     results.forEach(res => {
       const identifyFields = res.config?.params?.identify_fields?.split(',').map(f => f.trim()) || [];
 
@@ -278,7 +292,7 @@ class MapViewer extends HTMLElement {
     content += '</div>';
 
     popup.innerHTML = `
-      <div style="background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; min-width: 150px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
+      <div class="popup-content" style="background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; min-width: 150px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); pointer-events: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
           <span style="font-weight: bold; font-size: 11px; color: #fff;">Feature Info</span>
           <button onclick="this.parentElement.parentElement.parentElement.style.display='none'" style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 14px;">&times;</button>
@@ -387,6 +401,12 @@ class MapViewer extends HTMLElement {
                     transition: all 0.2s ease !important;
                 }
                 .ol-control button:hover { background: #fff !important; transform: scale(1.05); }
+
+                /* Custom Scrollbar for Popup and Lists */
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 3px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
             </style>
             <div id="map-container">
                 <div id="map"></div>
