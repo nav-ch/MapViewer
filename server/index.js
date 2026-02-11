@@ -40,6 +40,8 @@ app.use('/api/basemaps', require('./routes/basemaps'));
 app.use('/api/keys', require('./routes/keys'));
 app.use('/api/viewer', require('./routes/viewer'));
 app.use('/api/proxy', require('./routes/proxy'));
+app.use('/api/config/database', require('./routes/config'));
+
 
 app.get(/^\/admin\/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, '../admin/dist/index.html'));

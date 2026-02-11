@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Plugin API verification</title>
+    <script type="module" src="/src/main.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            font-family: sans-serif;
+        }
+
+        #sidebar {
+            width: 300px;
+            padding: 20px;
+            background: #f0f0f0;
+            border-right: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+        }
+
+        #map-area {
+            flex: 1;
+        }
+
+        map-viewer {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        button {
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        h3 {
+            margin-top: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="sidebar">
+        <h2>API Controls</h2>
+
+        <h3>Navigation</h3>
+        <button onclick="zoomToParis()">Zoom to Paris</button>
+        <button onclick="panToNYC()">Pan to NYC</button>
+        <button onclick="setZoomLevel(10)">Set Zoom 10</button>
+
+        <h3>Layers</h3>
+        <button onclick="addLayer()">Add GeoJSON Layer</button>
+        <button onclick="listLayers()">Log Layers</button>
+        <button onclick="removeLastLayer()">Remove Last Layer</button>
+        <button onclick="exportLayer()">Export Last Layer</button>
+
+        <h3>Features</h3>
+        <button onclick="addFeaturesToLast()">Add Features to Last</button>
+        <button onclick="logSelection()">Log Selected Features</button>
+        <button onclick="clearSelection()">Clear Selection</button>
+
+        <h3>Events</h3>
+        <div id="event-log"
+            style="font-size: 10px; height: 100px; overflow-y: auto; background: #fff; padding: 5px; border: 1px solid #ccc;">
+        </div>
+    </div>
+    <div id="map-area">
+        <!-- We don't provide ID/Key so it starts blank or we can mock config via API if we had setConfig -->
+        <!-- Just waiting for component to load -->
+        <map-viewer id="map" api-url="http://localhost:3000"></map-viewer>
+    </div>
+
+    <script>
+        const map = document.getElementById('map');
+
+        // Mock a basic config manually since we might not have backend running or valid ID
+        // Actually the component tries to load from backend. 
+        // We can inject config directly if we access the component instance.
+
+        // Wait for upgrade
+        customElements.whenDefined('map-viewer').then(() => {
+            console.log('Map Viewer defined');
+            // Manually trigger init with a dummy config if not loading attribute
+            map.config = {
+                config: { center: [0, 0], zoom: 2, projection: 'EPSG:3857' },
+                layers: [],
+                basemaps: [{ id: 'osm', name: 'OpenStreetMap', type: 'OSM', is_default: true }]
+            };
+            map.initMap();
+        });
+
+        function zoomToParis() {
+            map.zoomTo([2.3522, 48.8566], 12);
+        }
+
+        function panToNYC() {
+            map.panTo([-74.0060, 40.7128]);
+        }
+
+        function setZoomLevel(z) {
+            map.setZoom(z);
+        }
+
+        function addLayer() {
+            const id = map.addVectorLayer({
+                name: 'Test Points',
+                data: {
+                    type: "FeatureCollection",
+                    features: [
+                        { type: "Feature", geometry: { type: "Point", coordinates: [0, 0] }, properties: { name: "Origin" } },
+                        { type: "Feature", geometry: { type: "Point", coordinates: [10, 10] }, properties: { name: "Ten-Ten" } }
+                    ]
+                },
+                style: {
+                    fill_color: "#ff0000",
+                    point_radius: 8
+                }
+            });
+            console.log('Added Layer ID:', id);
+        }
+
+        function listLayers() {
+            console.log(map.getLayers());
+        }
+
+        function removeLastLayer() {
+            const layers = map.getLayers();
+            if (layers.length > 0) {
+                map.removeLayer(layers.length - 1);
+            }
+        }
+
+        function exportLayer() {
+            const layers = map.getLayers();
+            if (layers.length > 0) {
+                const geojson = map.exportLayer(layers.length - 1);
+                console.log('Exported:', geojson);
+                alert(JSON.stringify(geojson, null, 2));
+            }
+        }
+
+        function addFeaturesToLast() {
+            const layers = map.getLayers();
+            if (layers.length > 0) {
+                map.addFeatures(layers.length - 1, {
+                    type: "FeatureCollection",
+                    features: [
+                        { type: "Feature", geometry: { type: "Point", coordinates: [-5, -5] }, properties: { name: "Added Later" } }
+                    ]
+                });
+            }
+        }
+
+        function logSelection() {
+            console.log(map.getSelectedFeatures());
+        }
+
+        function clearSelection() {
+            map.clearSelection();
+        }
+
+        // Event Listener
+        map.addEventListener('features-selected', (e) => {
+            const log = document.getElementById('event-log');
+            log.innerHTML += `<div>Selected: ${e.detail.features.features.length} features</div>`;
+            log.scrollTop = log.scrollHeight;
+            console.log('Event features-selected:', e.detail);
+        });
+
+        map.addEventListener('layer-saved', (e) => {
+            const log = document.getElementById('event-log');
+            log.innerHTML += `<div>Saved Layer: ${e.detail.layerName}</div>`;
+            console.log('Event layer-saved:', e.detail);
+        });
+
+    </script>
+</body>
+
+</html>

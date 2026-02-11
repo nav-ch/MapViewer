@@ -21,6 +21,10 @@ import { WFSProvider } from './layers/providers/WFSProvider';
 import { ArcGISFeatureServerProvider } from './layers/providers/ArcGISFeatureServerProvider';
 import { ArcGISRestProvider } from './layers/providers/ArcGISRestProvider';
 import { WMTSProvider } from './layers/providers/WMTSProvider';
+import { VectorProvider } from './layers/providers/VectorProvider';
+import { GeoJSON } from 'ol/format';
+import { Vector as VectorSource } from 'ol/source';
+import { Draw } from 'ol/interaction';
 
 // Register Standard Providers
 layerRegistry.register(OSMProvider);
@@ -30,6 +34,7 @@ layerRegistry.register(WFSProvider);
 layerRegistry.register(ArcGISFeatureServerProvider);
 layerRegistry.register(ArcGISRestProvider);
 layerRegistry.register(WMTSProvider);
+layerRegistry.register(VectorProvider);
 
 // Common Projections Registration
 proj4.defs("EPSG:2056", "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=besel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs");
@@ -53,6 +58,7 @@ class MapViewer extends HTMLElement {
     this.layerPanelOpen = false;
     this.editingLayerIdx = null; // Track which layer is being edited
     this.editorTools = null; // Store active interaction tools
+    this.drawInteraction = null;
   }
 
   static get observedAttributes() {
@@ -210,6 +216,8 @@ class MapViewer extends HTMLElement {
   }
 
   async handleMapClick(evt) {
+    if (this.editorTools) return; // Disable identification while editing
+
     const viewResolution = this.map.getView().getResolution();
     const popup = this.shadowRoot.querySelector('#popup');
     popup.style.display = 'none';
@@ -220,11 +228,11 @@ class MapViewer extends HTMLElement {
     // Check WMS Layers for GetFeatureInfo
     this.map.getLayers().forEach(layer => {
       const source = layer.getSource();
-      if (source && typeof source.getFeatureInfoUrl === 'function') {
+      if (layer.getVisible() && source && typeof source.getFeatureInfoUrl === 'function') {
         const url = source.getFeatureInfoUrl(
           evt.coordinate,
           viewResolution,
-          'EPSG:3857',
+          this.map.getView().getProjection(),
           { 'INFO_FORMAT': 'application/json' }
         );
         if (url) {
@@ -239,7 +247,7 @@ class MapViewer extends HTMLElement {
 
     // Check Vector Layers
     this.map.forEachFeatureAtPixel(evt.pixel, (feature, layer) => {
-      if (layer) {
+      if (layer && layer.getVisible()) {
         results.push(Promise.resolve({
           layerName: layer.get('name') || 'Vector Layer',
           features: [feature],
@@ -252,6 +260,14 @@ class MapViewer extends HTMLElement {
 
     if (resolvedResults.length > 0) {
       this.showPopup(evt.pixel, resolvedResults);
+
+      // Dispatch API Event
+      const features = resolvedResults.flatMap(r => r.features);
+      this.dispatchEvent(new CustomEvent('features-selected', {
+        detail: { features: new GeoJSON().writeFeaturesObject(features) },
+        bubbles: true,
+        composed: true
+      }));
     }
   }
 
@@ -504,7 +520,7 @@ class MapViewer extends HTMLElement {
             <input type="range" min="0" max="1" step="0.1" value="${l.opacity !== undefined ? l.opacity : 1}" oninput="this.getRootNode().host.setLayerOpacity(${idx}, this.value)">
           </div>
           
-          ${l.type && l.type.toUpperCase() === 'WFS' ? `
+          ${(l.type && (l.type.toUpperCase() === 'WFS' || l.type.toUpperCase() === 'VECTOR')) ? `
              <div style="display: flex; gap: 8px; margin-top: 6px;">
                  <button
                     onclick="this.getRootNode().host.toggleEditing(${idx})"
@@ -527,6 +543,12 @@ class MapViewer extends HTMLElement {
                  >
                     Save
                  </button>
+                    <!-- Draw Tools -->
+                   <div style="display:flex; gap:2px; margin-left: 5px;">
+                        <button onclick="this.getRootNode().host.startDrawing('Point')" title="Draw Point">📍</button>
+                        <button onclick="this.getRootNode().host.startDrawing('LineString')" title="Draw Line">📈</button>
+                        <button onclick="this.getRootNode().host.startDrawing('Polygon')" title="Draw Polygon">⬠</button>
+                   </div>
                  ` : ''}
              </div>
           ` : ''}
@@ -693,19 +715,24 @@ class MapViewer extends HTMLElement {
 
     // Start editing
     this.editingLayerIdx = idx;
-    const tools = setupEditing(this.map, layer, 'WFS');
+    const type = layer.get('config').type === 'Vector' ? 'Vector' : 'WFS';
+    const tools = setupEditing(this.map, layer, type);
 
     if (tools) {
       this.editorTools = tools;
       console.log(`[MapViewer] Editing started for layer ${idx}`);
     } else {
       this.editingLayerIdx = null;
-      console.warn('[MapViewer] Failed to start editing - not a WFS layer?');
+      console.warn('[MapViewer] Failed to start editing - not a WFS/Vector layer?');
     }
     this.updateUI();
   }
 
   stopEditing() {
+    if (this.drawInteraction) {
+      this.map.removeInteraction(this.drawInteraction);
+      this.drawInteraction = null;
+    }
     if (this.editorTools) {
       const { select, modify, snap } = this.editorTools;
       this.map.removeInteraction(select);
@@ -717,9 +744,214 @@ class MapViewer extends HTMLElement {
     this.updateUI();
   }
 
+  startDrawing(geometryType) {
+    if (this.drawInteraction) {
+      this.map.removeInteraction(this.drawInteraction);
+    }
+    if (this.editingLayerIdx === null) return;
+
+    const layer = this.map.getLayers().item(this.editingLayerIdx + 1);
+    if (!layer) return;
+
+    this.drawInteraction = new Draw({
+      source: layer.getSource(),
+      type: geometryType
+    });
+    this.map.addInteraction(this.drawInteraction);
+  }
+
   async saveEdits() {
     if (this.editorTools && this.editorTools.saveChanges) {
       await this.editorTools.saveChanges();
+    }
+  }
+
+  // ============================================
+  // PUBLIC API
+  // ============================================
+
+  zoomTo(coordinates, zoomLevel) {
+    if (!this.map) return;
+    const view = this.map.getView();
+    const proj = view.getProjection();
+    const pt = fromLonLat(coordinates, proj);
+    view.animate({ center: pt, zoom: zoomLevel || view.getZoom(), duration: 1000 });
+  }
+
+  panTo(coordinates) {
+    if (!this.map) return;
+    const view = this.map.getView();
+    const pt = fromLonLat(coordinates, view.getProjection());
+    view.animate({ center: pt, duration: 1000 });
+  }
+
+  setZoom(zoom) {
+    if (!this.map) return;
+    this.map.getView().animate({ zoom: zoom, duration: 500 });
+  }
+
+  addVectorLayer(config) {
+    if (!this.map) return;
+    // config: { name, data: GeoJSON, style: {} }
+    const InternalConfig = {
+      name: config.name || 'New Layer',
+      type: 'Vector',
+      data: config.data,
+      params: { style: config.style },
+      visible: true,
+      opacity: 1
+    };
+
+    const layer = createLayer(InternalConfig, null);
+    if (layer) {
+      layer.set('name', InternalConfig.name);
+      layer.set('config', InternalConfig);
+      this.map.addLayer(layer);
+      this.config.layers.push(InternalConfig);
+      this.updateUI();
+      return this.config.layers.length - 1; // Return index/ID
+    }
+  }
+
+  getLayers() {
+    if (!this.map) return [];
+    return this.config.layers.map((l, i) => ({ id: i, name: l.name, type: l.type, visible: l.visible }));
+  }
+
+  removeLayer(index) {
+    if (!this.map || index < 0 || index >= this.config.layers.length) return;
+
+    // Remove from OL
+    const layers = this.map.getLayers();
+    layers.removeAt(index + 1); // +1 for basemap
+
+    // Remove from Config
+    this.config.layers.splice(index, 1);
+    this.updateUI();
+  }
+
+  exportLayer(index, format = 'geojson') {
+    if (!this.map || index < 0 || index >= this.config.layers.length) return null;
+    const layer = this.map.getLayers().item(index + 1);
+    if (!layer) return null;
+
+    const source = layer.getSource();
+    if (source instanceof VectorSource) {
+      const writer = new GeoJSON();
+      const features = writer.writeFeaturesObject(source.getFeatures(), {
+        featureProjection: this.map.getView().getProjection(),
+        dataProjection: 'EPSG:4326'
+      });
+      return features;
+    }
+    return null;
+  }
+
+  addFeatures(index, features) {
+    // features: GeoJSON object or array of features
+    if (!this.map || index < 0 || index >= this.config.layers.length) return;
+    const layer = this.map.getLayers().item(index + 1);
+    const source = layer.getSource();
+
+    if (source instanceof VectorSource) {
+      const reader = new GeoJSON();
+      const readFeatures = reader.readFeatures(features, {
+        featureProjection: this.map.getView().getProjection(),
+        dataProjection: 'EPSG:4326'
+      });
+      source.addFeatures(readFeatures);
+    }
+  }
+
+  selectFeatures(geometry) {
+    if (!geometry || !this.map) return;
+    const view = this.map.getView();
+    // Ensure we have GeoJSON format available (imported at top)
+    const format = new GeoJSON();
+    let searchGeom;
+
+    try {
+      searchGeom = format.readGeometry(geometry, {
+        featureProjection: view.getProjection(),
+        dataProjection: 'EPSG:4326'
+      });
+    } catch (e) {
+      console.warn('Invalid geometry passed to selectFeatures', e);
+      return;
+    }
+
+    const extent = searchGeom.getExtent();
+    const selectedFeatures = [];
+
+    // Iterate over vector layers to find intersecting features
+    this.map.getLayers().forEach(layer => {
+      const source = layer.getSource();
+      // Check if source is VectorSource (imported as VectorSource)
+      if (source instanceof VectorSource && layer.getVisible()) {
+        source.forEachFeatureInExtent(extent, (feature) => {
+          const featureGeom = feature.getGeometry();
+          if (featureGeom && searchGeom.intersectsExtent(featureGeom.getExtent())) {
+            // For more precise checking, we'd use JSTS or complex logic. 
+            // Extent intersection is good for bounding box selection.
+            // If searchGeom is Point, we should use source.getFeaturesAtCoordinate?
+            // But existing API implies generic geometry.
+            // If searchGeom is Point, intersectsExtent works if point is inside feature extent? No.
+
+            // Refinement: If searchGeom type is Point, check distance or use getFeaturesAtCoordinate
+            // But let's stick to extent for now as reliable basic implementation.
+            // Actually, if searchGeom is a Polygon, we want features intersecting it.
+            // intersectsExtent is a loose check (bbox). 
+            // Ideally we check `featureGeom.intersects(searchGeom)` but OL doesn't support that directly.
+            // We'll trust Extent for now.
+            selectedFeatures.push(feature);
+          }
+        });
+      }
+    });
+
+    // Update editor selection if active and features belong to edited layer
+    if (this.editorTools && this.editorTools.select) {
+      const select = this.editorTools.select;
+      select.getFeatures().clear();
+
+      const editedLayer = this.map.getLayers().item(this.editingLayerIdx + 1); // +1 for basemap
+      if (editedLayer) {
+        const source = editedLayer.getSource();
+        const validFeatures = selectedFeatures.filter(f => source.hasFeature(f));
+        validFeatures.forEach(f => select.getFeatures().push(f));
+      }
+    }
+
+    // Dispatch event with found features
+    if (selectedFeatures.length > 0) {
+      const writer = new GeoJSON();
+      const geojson = writer.writeFeaturesObject(selectedFeatures, {
+        featureProjection: view.getProjection(),
+        dataProjection: 'EPSG:4326'
+      });
+      this.dispatchEvent(new CustomEvent('features-selected', {
+        detail: { features: geojson },
+        bubbles: true,
+        composed: true
+      }));
+    }
+  }
+
+  getSelectedFeatures() {
+    if (this.editorTools && this.editorTools.select) {
+      const features = this.editorTools.select.getFeatures().getArray();
+      const writer = new GeoJSON();
+      return writer.writeFeaturesObject(features, {
+        featureProjection: this.map.getView().getProjection(),
+        dataProjection: 'EPSG:4326'
+      });
+    }
+    return [];
+  }
+
+  clearSelection() {
+    if (this.editorTools && this.editorTools.select) {
+      this.editorTools.select.getFeatures().clear();
     }
   }
 }

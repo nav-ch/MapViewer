@@ -1,37 +1,41 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { loadConfig } = require('../config/database');
+const SQLiteProvider = require('./providers/SQLiteProvider');
+const PostgresProvider = require('./providers/PostgresProvider');
 
-const dbPath = path.join(__dirname, '..', '..', 'database.sqlite');
-const db = new sqlite3.Database(dbPath);
+let provider = null;
 
-// Enable WAL mode for better concurrency
-db.run('PRAGMA journal_mode = WAL');
+function getProvider() {
+    if (provider) return provider;
+
+    const config = loadConfig();
+    console.log(`Initializing database provider: ${config.type}`);
+
+    switch (config.type) {
+        case 'postgres':
+            provider = new PostgresProvider(config);
+            break;
+        case 'sqlite':
+        default:
+            provider = new SQLiteProvider(config);
+            break;
+    }
+
+    return provider;
+}
+
+// Initialize provider on load
+getProvider();
 
 module.exports = {
-    /**
-     * Compatibility wrapper for PostgreSQL-style queries
-     * @param {string} text SQL query
-     * @param {any[]} params parameters
-     */
-    query: (text, params = []) => {
-        return new Promise((resolve, reject) => {
-            // Convert PG-style placeholders ($1, $2) to SQLite-style (?)
-            const sqliteText = text.replace(/\$\d+/g, '?');
-
-            const isSelect = sqliteText.trim().toUpperCase().startsWith('SELECT');
-
-            if (isSelect) {
-                db.all(sqliteText, params, (err, rows) => {
-                    if (err) return reject(err);
-                    resolve({ rows });
-                });
-            } else {
-                db.run(sqliteText, params, function (err) {
-                    if (err) return reject(err);
-                    resolve({ rows: [], lastID: this.lastID, changes: this.changes });
-                });
-            }
-        });
+    query: async (text, params) => {
+        return await provider.query(text, params);
     },
-    pool: db // Export the db instance as 'pool' for any direct access if needed
+    getProvider, // Exported to allow switching providers or accessing provider-specific methods
+    close: async () => {
+        if (provider) {
+            await provider.close();
+            provider = null;
+        }
+    }
 };
+

@@ -1,4 +1,4 @@
-import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
+import { Style, Fill, Stroke, Circle as CircleStyle, Text } from 'ol/style';
 
 /**
  * Parses a JSON style configuration into an OpenLayers Style object.
@@ -49,7 +49,6 @@ export function parseStyle(styleConfig) {
     }
 
     // Point / Circle
-    // Check key "pointRadius" OR "circle" object
     const circleConfig = config.circle;
     const pointRadius = config.pointRadius || (circleConfig && circleConfig.radius);
 
@@ -71,9 +70,46 @@ export function parseStyle(styleConfig) {
         hasStyle = true;
     }
 
-    // If we parsed successfully but found no valid style properties, return undefined 
-    // to fall back to OL default (instead of invisible features)
+    // Text / Label
+    const textConfig = config.text || config.label;
+    if (textConfig) {
+        styleOpts.text = new Text({
+            text: textConfig.text || '', // Default to empty if dynamic
+            font: textConfig.font || '12px sans-serif',
+            fill: new Fill({ color: textConfig.fill?.color || config.fillColor || '#000' }),
+            stroke: new Stroke({
+                color: textConfig.stroke?.color || config.strokeColor || '#fff',
+                width: textConfig.stroke?.width || 3
+            }),
+            offsetX: textConfig.offsetX || 0,
+            offsetY: textConfig.offsetY || 0,
+            overflow: textConfig.overflow ?? true
+        });
+        hasStyle = true;
+    }
+
     if (!hasStyle) return undefined;
 
     return new Style(styleOpts);
+}
+
+/**
+ * Creates a style function for data-driven styling (labels).
+ * @param {Object} styleConfig 
+ */
+export function createStyleFunction(styleConfig) {
+    const baseStyle = parseStyle(styleConfig);
+    const textConfig = styleConfig?.text || styleConfig?.label;
+
+    if (textConfig && textConfig.field) {
+        return function (feature, resolution) {
+            const style = baseStyle.clone();
+            const textStyle = style.getText();
+            if (textStyle) {
+                textStyle.setText(feature.get(textConfig.field) + '' || '');
+            }
+            return style;
+        };
+    }
+    return baseStyle;
 }
