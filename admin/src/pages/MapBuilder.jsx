@@ -325,8 +325,22 @@ const MapBuilder = () => {
                             <p className="text-sm text-slate-500 line-clamp-2 mt-2 font-medium h-10 leading-relaxed">{map.description}</p>
 
                             <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
-                                <div className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">
-                                    <Layers size={14} /> {map.layer_count || 0} Layers
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigator.clipboard.writeText(map.id);
+                                            // You might want to add a toast notification here in a real app
+                                            alert(`Map ID ${map.id} copied to clipboard!`);
+                                        }}
+                                        className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors font-mono"
+                                        title="Click to copy Map ID"
+                                    >
+                                        ID: {map.id}
+                                    </button>
+                                    <div className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">
+                                        <Layers size={14} /> {map.layer_count || 0}
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => {

@@ -1,131 +1,79 @@
-
-import { Style, Fill, Stroke, Circle as CircleStyle, Text } from 'ol/style';
+import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
 
 /**
- * Parses a simplified JSON style object into an OpenLayers Style.
+ * Parses a JSON style configuration into an OpenLayers Style object.
+ * @param {Object} styleConfig - The style configuration object.
+ * @returns {Style} The OpenLayers Style object.
  */
 export function parseStyle(styleConfig) {
-    if (!styleConfig) return undefined; // Return undefined to use default OL style if no config
+    if (!styleConfig) return undefined; // Default OpenLayers style
 
-    const styles = [];
-
-    // 1. Fill (Polygons)
-    if (styleConfig.fill) {
-        styles.push(new Style({
-            fill: new Fill({
-                color: styleConfig.fill.color || 'rgba(255, 255, 255, 0.4)'
-            })
-        }));
-    }
-
-    // 2. Stroke (Lines/Polygons)
-    if (styleConfig.stroke) {
-        styles.push(new Style({
-            stroke: new Stroke({
-                color: styleConfig.stroke.color || '#3399CC',
-                width: styleConfig.stroke.width || 1.25,
-                lineDash: styleConfig.stroke.lineDash || undefined
-            })
-        }));
-    }
-
-    // 3. Circle (Points)
-    if (styleConfig.circle || styleConfig.radius) {
-        const radius = styleConfig.circle?.radius || styleConfig.radius || 5;
-        const fill = styleConfig.circle?.fill ? new Fill({ color: styleConfig.circle.fill.color }) :
-            (styleConfig.fill ? new Fill({ color: styleConfig.fill.color }) : new Fill({ color: '#3399CC' }));
-        const stroke = styleConfig.circle?.stroke ? new Stroke(styleConfig.circle.stroke) :
-            (styleConfig.stroke ? new Stroke(styleConfig.stroke) : new Stroke({ color: '#fff', width: 1 }));
-
-        styles.push(new Style({
-            image: new CircleStyle({
-                radius: radius,
-                fill: fill,
-                stroke: stroke
-            })
-        }));
-    }
-
-    // 4. Text Label
-    if (styleConfig.label) {
-        // If it's a static text label (unlikely, usually field-based)
-        if (styleConfig.label.text) {
-            styles.push(new Style({
-                text: new Text({
-                    text: styleConfig.label.text,
-                    font: styleConfig.label.font || '12px sans-serif',
-                    fill: new Fill({ color: styleConfig.label.color || '#000' }),
-                    stroke: new Stroke({
-                        color: styleConfig.label.haloColor || '#fff',
-                        width: styleConfig.label.haloWidth || 3
-                    })
-                })
-            }));
+    // Handle stringified JSON from backend
+    let config = styleConfig;
+    if (typeof styleConfig === 'string') {
+        try {
+            config = JSON.parse(styleConfig);
+        } catch (e) {
+            console.warn('Invalid JSON style string:', styleConfig);
+            return undefined;
         }
     }
 
-    // If no specific style parts found but config exists, maybe return a default? 
-    // For now returning whatever we found.
-    // If styles array is empty, OL will use default. 
-    // BUT we want to combine them into one Style object if possible or return array.
-    // OL accepts array or single style.
+    // If empty object, return undefined
+    if (Object.keys(config).length === 0) return undefined;
 
-    // Combining for simplicity where possible, but returning array is safer.
-    if (styles.length === 0 && (styleConfig.fill || styleConfig.stroke)) {
-        // Fallback for simple structure like {fill:{...}, stroke:{...}}
-        return new Style({
-            fill: styleConfig.fill ? new Fill(styleConfig.fill) : undefined,
-            stroke: styleConfig.stroke ? new Stroke(styleConfig.stroke) : undefined
+    const styleOpts = {};
+    let hasStyle = false;
+
+    // Fill
+    const fillColor = config.fillColor || (config.fill && config.fill.color);
+    if (fillColor) {
+        styleOpts.fill = new Fill({
+            color: fillColor
         });
+        hasStyle = true;
     }
 
-    return styles.length > 0 ? styles : undefined;
-}
+    // Stroke
+    const strokeColor = config.strokeColor || (config.stroke && config.stroke.color);
+    const strokeWidth = config.strokeWidth || (config.stroke && config.stroke.width);
+    const lineDash = config.lineDash || (config.stroke && config.stroke.lineDash);
 
-/**
- * Creates a style function for dynamic properties (like labels).
- */
-export function createStyleFunction(styleConfig) {
-    if (!styleConfig) return undefined;
+    if (strokeColor || strokeWidth) {
+        styleOpts.stroke = new Stroke({
+            color: strokeColor || '#000000',
+            width: strokeWidth || 1,
+            lineDash: lineDash || undefined
+        });
+        hasStyle = true;
+    }
 
-    // Helper to get base style
-    const getBaseStyle = () => {
-        const fill = styleConfig.fill ? new Fill({ color: styleConfig.fill.color }) : undefined;
-        const stroke = styleConfig.stroke ? new Stroke({ color: styleConfig.stroke.color, width: styleConfig.stroke.width }) : undefined;
-        let image = undefined;
+    // Point / Circle
+    // Check key "pointRadius" OR "circle" object
+    const circleConfig = config.circle;
+    const pointRadius = config.pointRadius || (circleConfig && circleConfig.radius);
 
-        if (styleConfig.circle || styleConfig.radius) {
-            const radius = styleConfig.circle?.radius || styleConfig.radius || 5;
-            const cFill = styleConfig.circle?.fill ? new Fill(styleConfig.circle.fill) : (fill || new Fill({ color: 'red' }));
-            const cStroke = styleConfig.circle?.stroke ? new Stroke(styleConfig.circle.stroke) : new Stroke({ color: 'white', width: 1 });
-            image = new CircleStyle({
-                radius: radius,
-                fill: cFill,
-                stroke: cStroke
-            });
-        }
+    if (pointRadius) {
+        const circleFillColor = (circleConfig && circleConfig.fill && circleConfig.fill.color) || config.fillColor || '#ff0000';
+        const circleStrokeColor = (circleConfig && circleConfig.stroke && circleConfig.stroke.color) || config.strokeColor || '#000000';
+        const circleStrokeWidth = (circleConfig && circleConfig.stroke && circleConfig.stroke.width) || config.strokeWidth || 1;
 
-        return new Style({ fill, stroke, image });
-    };
+        styleOpts.image = new CircleStyle({
+            radius: pointRadius,
+            fill: new Fill({
+                color: circleFillColor
+            }),
+            stroke: new Stroke({
+                color: circleStrokeColor,
+                width: circleStrokeWidth
+            })
+        });
+        hasStyle = true;
+    }
 
-    return (feature, resolution) => {
-        const style = getBaseStyle();
+    // If we parsed successfully but found no valid style properties, return undefined 
+    // to fall back to OL default (instead of invisible features)
+    if (!hasStyle) return undefined;
 
-        if (styleConfig.label && styleConfig.label.field) {
-            const labelValue = feature.get(styleConfig.label.field);
-            if (labelValue) {
-                style.setText(new Text({
-                    text: String(labelValue),
-                    font: styleConfig.label.font || '13px Calibri,sans-serif',
-                    fill: new Fill({ color: styleConfig.label.color || '#000' }),
-                    stroke: new Stroke({
-                        color: styleConfig.label.haloColor || '#fff',
-                        width: styleConfig.label.haloWidth || 3
-                    }),
-                    offsetY: -10
-                }));
-            }
-        }
-        return style;
-    };
+    return new Style(styleOpts);
 }

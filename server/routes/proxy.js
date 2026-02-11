@@ -3,7 +3,7 @@ const router = express.Router();
 const axios = require('axios');
 
 // Proxy endpoint to bypass CORS
-router.get('/', async (req, res) => {
+router.all('/', async (req, res) => {
     const { url } = req.query;
 
     if (!url) {
@@ -12,21 +12,35 @@ router.get('/', async (req, res) => {
 
     try {
         // Forward the request to the target URL
-        // We exclude the 'url' param from being forwarded back to the target itself
         const targetUrl = new URL(url);
+
+        // Append query params (excluding 'url')
         Object.keys(req.query).forEach(key => {
             if (key !== 'url') {
                 targetUrl.searchParams.append(key, req.query[key]);
             }
         });
 
+        // Determine method and data
+        const method = req.method.toLowerCase();
+        const data = (method === 'post' || method === 'put' || method === 'patch') ? req.body : undefined;
+
+        // Headers to forward
+        const headers = {
+            'User-Agent': 'MapViewer-Proxy/1.0',
+            ...req.headers
+        };
+
+        // Remove host header to avoid conflicts
+        delete headers['host'];
+        delete headers['content-length'];
+
         const response = await axios({
-            method: 'get',
+            method: method,
             url: targetUrl.toString(),
+            data: data,
             responseType: 'arraybuffer', // Handle binary data like images or octet-streams
-            headers: {
-                'User-Agent': 'MapViewer-Proxy/1.0'
-            },
+            headers: headers,
             timeout: 30000 // 30 second timeout
         });
 

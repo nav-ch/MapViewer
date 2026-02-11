@@ -2,6 +2,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { GeoJSON } from 'ol/format';
 import { bbox as bboxStrategy } from 'ol/loadingstrategy';
+import { parseStyle } from '../../utils/style-parser';
 
 export const WFSProvider = {
     type: 'WFS',
@@ -19,7 +20,7 @@ export const WFSProvider = {
     },
 
     create: (config, context) => {
-        const { url, params, opacity, visible, projection } = config;
+        const { url, params = {}, opacity, visible, projection } = config;
         const { rootApiUrl } = context || {};
 
         const isProxied = params?.use_proxy;
@@ -48,7 +49,17 @@ export const WFSProvider = {
                 strategy: bboxStrategy,
             }),
             opacity: opacity ?? 1,
-            visible: visible ?? true
+            visible: visible ?? true,
+            style: parseStyle(params.style || config.style)
         });
+
+        // Store metadata for editor-tools
+        layer.set('wfsUrl', finalUrl);
+        layer.set('wfsParams', params);
+        if (rootApiUrl) {
+            layer.set('rootApiUrl', rootApiUrl);
+        }
+
+        return layer;
     }
 };

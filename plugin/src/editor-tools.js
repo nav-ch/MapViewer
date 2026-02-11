@@ -19,28 +19,45 @@ export function setupEditing(map, layer, type) {
     const saveChanges = async () => {
         const formatWFS = new WFS();
         const features = layer.getSource().getFeatures();
+        const wfsUrl = layer.get('wfsUrl');
+        const wfsParams = layer.get('wfsParams') || {};
+        const rootApiUrl = layer.get('rootApiUrl');
 
-        // This is a simplified WFS-T save logic
-        // In a real app, we would track which features were modified
+        const featureType = wfsParams.layers || wfsParams.typeName || 'feature';
+
         const node = formatWFS.writeTransaction(null, features, null, {
             featureNS: 'http://www.opengis.net/wfs',
             featurePrefix: 'feature',
-            featureType: 'your_layer_name',
+            featureType: featureType,
             srsName: 'EPSG:3857',
         });
 
         const xmlSerializer = new XMLSerializer();
         const payload = xmlSerializer.serializeToString(node);
 
+        let fetchUrl = wfsUrl;
+
+        if (wfsParams.use_proxy && rootApiUrl) {
+            fetchUrl = `${rootApiUrl}/api/proxy?url=${encodeURIComponent(wfsUrl)}`;
+        }
+
         try {
-            await fetch(layer.getSource().getUrl(), {
+            const response = await fetch(fetchUrl, {
                 method: 'POST',
                 body: payload,
                 headers: { 'Content-Type': 'text/xml' }
             });
-            console.log('Changes saved successfully');
+
+            if (response.ok) {
+                console.log('Changes saved successfully');
+                alert('Changes saved!');
+            } else {
+                console.error('Save failed', response.statusText);
+                alert('Save failed: ' + response.statusText);
+            }
         } catch (err) {
             console.error('Failed to save changes:', err);
+            alert('Error saving changes');
         }
     };
 

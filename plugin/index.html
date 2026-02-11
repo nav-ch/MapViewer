@@ -1,28 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Map Plugin Test</title>
     <style>
-        body { margin: 0; padding: 20px; font-family: system-ui; background: #eaeff2; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        h1 { color: #1a1c22; margin-top: 0; }
-        .map-wrapper { width: 100%; height: 500px; border-radius: 12px; overflow: hidden; border: 1px solid #ddd; margin-top: 20px; }
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: system-ui;
+            background: #eaeff2;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            color: #1a1c22;
+            margin-top: 0;
+        }
+
+        .map-wrapper {
+            width: 100%;
+            height: 500px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>External Application Demo</h1>
         <p>This page demonstrates how the map plugin can be embedded in any web application using a simple HTML tag.</p>
-        
+
         <div class="map-wrapper">
             <!-- The Custom Element -->
-            <map-viewer 
-                map-id="m1" 
-                api-key="mv_example_key" 
-                api-url="http://localhost:3000"
-            ></map-viewer>
+            <map-viewer map-id="161744af-1da0-4aee-979a-075c02162fec" api-key="mv_example_key"
+                api-url="http://localhost:3000"></map-viewer>
         </div>
 
         <p style="margin-top: 30px; color: #666; font-size: 14px;">
@@ -33,4 +57,5 @@
     <!-- The Plugin Script (In production, this would be a single bundled file) -->
     <script type="module" src="/src/main.js"></script>
 </body>
+
 </html>

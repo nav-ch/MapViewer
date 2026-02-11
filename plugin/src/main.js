@@ -3,6 +3,7 @@ import View from 'ol/View';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import { createLayer } from './layer-factory';
 import { createBasemapLayer } from './basemaps';
+import { setupEditing } from './editor-tools';
 import axios from 'axios';
 import 'ol/ol.css';
 import proj4 from 'proj4';
@@ -48,7 +49,10 @@ class MapViewer extends HTMLElement {
     this.config = null;
     this.currentBasemapKey = 'OSM';
     this.basemapPanelOpen = false;
+    this.basemapPanelOpen = false;
     this.layerPanelOpen = false;
+    this.editingLayerIdx = null; // Track which layer is being edited
+    this.editorTools = null; // Store active interaction tools
   }
 
   static get observedAttributes() {
@@ -448,6 +452,10 @@ class MapViewer extends HTMLElement {
       triggerLayers.classList.remove('active');
     }
 
+    if (this.editingLayerIdx !== null) {
+      layerPanel.classList.add('show'); // Keep panel open while editing
+    }
+
     if (this.basemapPanelOpen) {
       basemapPanel.classList.add('show');
       triggerBasemaps.classList.add('active');
@@ -495,6 +503,34 @@ class MapViewer extends HTMLElement {
             <span>Opacity</span>
             <input type="range" min="0" max="1" step="0.1" value="${l.opacity !== undefined ? l.opacity : 1}" oninput="this.getRootNode().host.setLayerOpacity(${idx}, this.value)">
           </div>
+          
+          ${l.type && l.type.toUpperCase() === 'WFS' ? `
+             <div style="display: flex; gap: 8px; margin-top: 6px;">
+                 <button
+                    onclick="this.getRootNode().host.toggleEditing(${idx})"
+                    style="
+                        flex: 1; padding: 4px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;
+                        border: 1px solid ${this.editingLayerIdx === idx ? '#3b82f6' : '#cbd5e1'};
+                        background: ${this.editingLayerIdx === idx ? '#3b82f6' : '#fff'};
+                        color: ${this.editingLayerIdx === idx ? '#fff' : '#475569'};
+                    "
+                 >
+                    ${this.editingLayerIdx === idx ? 'Stop Editing' : 'Edit Features'}
+                 </button>
+                 ${this.editingLayerIdx === idx ? `
+                 <button
+                    onclick="this.getRootNode().host.saveEdits()"
+                    style="
+                        padding: 4px 12px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;
+                        border: 1px solid #10b981; background: #10b981; color: white;
+                    "
+                 >
+                    Save
+                 </button>
+                 ` : ''}
+             </div>
+          ` : ''}
+
           ${l.params?.legend_url ? `
             <button class="legend-btn" onclick="this.nextElementSibling.classList.toggle('show')">View Legend</button>
             <div class="legend-container">
@@ -640,6 +676,51 @@ class MapViewer extends HTMLElement {
     const center = toLonLat(view.getCenter());
     const zoom = view.getZoom();
     return { center, zoom };
+  }
+
+  toggleEditing(idx) {
+    // If clicking the same layer, toggle off
+    if (this.editingLayerIdx === idx) {
+      this.stopEditing();
+      return;
+    }
+
+    // Stop any existing editing
+    this.stopEditing();
+
+    const layer = this.map.getLayers().item(idx + 1); // +1 for basemap
+    if (!layer) return;
+
+    // Start editing
+    this.editingLayerIdx = idx;
+    const tools = setupEditing(this.map, layer, 'WFS');
+
+    if (tools) {
+      this.editorTools = tools;
+      console.log(`[MapViewer] Editing started for layer ${idx}`);
+    } else {
+      this.editingLayerIdx = null;
+      console.warn('[MapViewer] Failed to start editing - not a WFS layer?');
+    }
+    this.updateUI();
+  }
+
+  stopEditing() {
+    if (this.editorTools) {
+      const { select, modify, snap } = this.editorTools;
+      this.map.removeInteraction(select);
+      this.map.removeInteraction(modify);
+      this.map.removeInteraction(snap);
+      this.editorTools = null;
+    }
+    this.editingLayerIdx = null;
+    this.updateUI();
+  }
+
+  async saveEdits() {
+    if (this.editorTools && this.editorTools.saveChanges) {
+      await this.editorTools.saveChanges();
+    }
   }
 }
 
