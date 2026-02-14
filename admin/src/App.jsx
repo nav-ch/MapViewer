@@ -28,7 +28,7 @@ const Layout = ({ children }) => {
       `}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+            <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center shadow-lg shadow-slate-200">
               <MapIcon size={24} className="text-white" />
             </div>
             <span className="font-bold text-2xl tracking-tight text-slate-800">MapViewer</span>
@@ -70,7 +70,7 @@ const Layout = ({ children }) => {
           </div>
 
           <div className="flex items-center gap-3 lg:gap-6">
-            <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
+            <button className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all">
               <Bell size={20} />
             </button>
             <div className="h-8 w-px bg-slate-200" />
@@ -100,8 +100,8 @@ const NavItem = ({ to, icon, label }) => (
     className={({ isActive }) => `
       flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300
       ${isActive
-        ? 'sidebar-active shadow-blue-200'
-        : 'text-slate-500 hover:bg-slate-50 hover:text-blue-600'}
+        ? 'sidebar-active shadow-slate-200'
+        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}
     `}
   >
     {icon}

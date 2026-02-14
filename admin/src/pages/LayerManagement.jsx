@@ -543,7 +543,7 @@ const LayerManagement = () => {
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
-                    className="bg-blue-600 text-white px-6 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-blue-100"
+                    className="bg-slate-800 text-white px-6 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-900 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-slate-200"
                 >
                     <Plus size={20} /> Add New Layer
                 </button>
@@ -555,7 +555,7 @@ const LayerManagement = () => {
                     <input
                         type="text"
                         placeholder="Search layers by name or type..."
-                        className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl text-slate-800 focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all shadow-sm"
+                        className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl text-slate-800 focus:ring-2 focus:ring-slate-100 focus:border-slate-400 outline-none transition-all shadow-sm"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -580,13 +580,13 @@ const LayerManagement = () => {
                         <div>
                             <div className="flex items-start justify-between mb-6">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
                                         <LayerIcon type={layer.type} />
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-slate-800 text-lg leading-tight line-clamp-1">{layer.name}</h3>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
                                                 {layer.type}
                                             </span>
                                         </div>
@@ -613,7 +613,7 @@ const LayerManagement = () => {
                             <div className="flex gap-2">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleOpenModal(layer); }}
-                                    className="p-2.5 bg-slate-50 text-slate-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all"
+                                    className="p-2.5 bg-slate-50 text-slate-600 hover:bg-slate-800 hover:text-white rounded-xl transition-all"
                                 >
                                     <Edit2 size={16} />
                                 </button>
@@ -632,7 +632,7 @@ const LayerManagement = () => {
                                 </button>
                             </div>
                             {layer.is_editable && (
-                                <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg">
+                                <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 rounded-lg">
                                     <Check size={14} className="font-bold" />
                                     <span className="text-xs font-bold uppercase">Editable</span>
                                 </div>
@@ -668,7 +668,7 @@ const LayerManagement = () => {
                                         required
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium"
+                                        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 transition-all font-medium"
                                         placeholder="e.g. Vegetation Index"
                                     />
                                 </div>
@@ -677,7 +677,7 @@ const LayerManagement = () => {
                                     <select
                                         value={formData.type}
                                         onChange={e => setFormData({ ...formData, type: e.target.value })}
-                                        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 cursor-pointer appearance-none transition-all font-medium"
+                                        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 cursor-pointer appearance-none transition-all font-medium"
                                     >
                                         {LAYER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                     </select>
@@ -691,7 +691,7 @@ const LayerManagement = () => {
                                         type="button"
                                         onClick={discoverService}
                                         disabled={discovering || !formData.url}
-                                        className="text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 disabled:text-slate-400 flex items-center gap-1 transition-all"
+                                        className="text-[10px] font-bold uppercase tracking-wider text-slate-600 hover:text-slate-800 disabled:text-slate-400 flex items-center gap-1 transition-all"
                                     >
                                         {discovering ? <Loader2 size={10} className="animate-spin" /> : <Globe size={10} />}
                                         {discovering ? 'Discovering...' : 'Discover Layers'}
@@ -702,7 +702,7 @@ const LayerManagement = () => {
                                     required
                                     value={formData.url}
                                     onChange={e => setFormData({ ...formData, url: e.target.value })}
-                                    className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium"
+                                    className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 transition-all font-medium"
                                     placeholder={
                                         formData.type === 'WMS' ? 'https://demo.boundary.org/geoserver/wms' :
                                             (formData.type === 'WFS' || formData.type === 'WFS-T') ? 'https://demo.boundary.org/geoserver/wfs' :
@@ -726,7 +726,7 @@ const LayerManagement = () => {
                                     <select
                                         value={formData.projection}
                                         onChange={e => setFormData({ ...formData, projection: e.target.value })}
-                                        className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 cursor-pointer appearance-none transition-all font-medium"
+                                        className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 cursor-pointer appearance-none transition-all font-medium"
                                     >
                                         <optgroup label="Discovered Projections">
                                             {discoveredProjections.length === 0 ? (
@@ -743,7 +743,7 @@ const LayerManagement = () => {
                                         type="text"
                                         value={formData.projection}
                                         onChange={e => setFormData({ ...formData, projection: e.target.value })}
-                                        className="w-40 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 font-mono text-sm"
+                                        className="w-40 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 font-mono text-sm"
                                         placeholder="Manual EPSG..."
                                     />
                                 </div>
@@ -751,18 +751,18 @@ const LayerManagement = () => {
                             </div>
 
                             {discoveredLayers.length > 0 && (
-                                <div className="flex flex-col gap-4 animate-in slide-in-from-top-2 duration-300 bg-blue-50/30 p-6 rounded-[24px] border border-blue-100/50">
+                                <div className="flex flex-col gap-4 animate-in slide-in-from-top-2 duration-300 bg-slate-50 p-6 rounded-[24px] border border-slate-200">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-sm font-bold text-blue-800 tracking-tight">Available Sub-layers</label>
+                                        <label className="text-sm font-bold text-slate-700 tracking-tight">Available Sub-layers</label>
                                         <div className="flex items-center gap-2">
                                             <input
                                                 type="text"
                                                 placeholder="Filter..."
-                                                className="bg-white border border-blue-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-blue-500 w-32"
+                                                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-slate-400 w-32"
                                                 value={discoveryFilter}
                                                 onChange={(e) => setDiscoveryFilter(e.target.value)}
                                             />
-                                            <span className="text-[10px] font-bold text-blue-400 uppercase">{discoveredLayers.filter(l => l.title.toLowerCase().includes(discoveryFilter.toLowerCase())).length} Found</span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase">{discoveredLayers.filter(l => l.title.toLowerCase().includes(discoveryFilter.toLowerCase())).length} Found</span>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
@@ -777,10 +777,10 @@ const LayerManagement = () => {
                                                         key={l.name}
                                                         type="button"
                                                         onClick={() => toggleDiscoveredLayer(l.name)}
-                                                        className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300'}`}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${isSelected ? 'bg-slate-100 border-slate-300 text-slate-800 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
                                                     >
-                                                        <div className={`w-5 h-5 rounded-${isSingleSelect ? 'full' : 'md'} flex items-center justify-center border ${isSelected ? 'bg-white text-blue-600 border-white' : 'border-slate-200'}`}>
-                                                            {isSelected && (isSingleSelect ? <div className="w-2.5 h-2.5 rounded-full bg-blue-600" /> : <Check size={12} strokeWidth={4} />)}
+                                                        <div className={`w-5 h-5 rounded-${isSingleSelect ? 'full' : 'md'} flex items-center justify-center border ${isSelected ? 'bg-white text-emerald-600 border-emerald-500 shadow-sm' : 'border-slate-200'}`}>
+                                                            {isSelected && (isSingleSelect ? <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> : <Check size={12} strokeWidth={4} />)}
                                                         </div>
                                                         <span className="text-[11px] font-bold truncate flex-1">{l.title}</span>
                                                     </button>
@@ -973,8 +973,8 @@ const LayerManagement = () => {
                             )}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <label className={`flex items-center gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-100 transition-all ${formData.is_editable ? 'cursor-pointer hover:border-blue-200 hover:bg-blue-50/50' : 'cursor-not-allowed opacity-60'}`}>
-                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.is_editable ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'}`}>
+                                <label className={`flex items-center gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-100 transition-all ${formData.is_editable ? 'cursor-pointer hover:border-slate-300 hover:bg-slate-100' : 'cursor-not-allowed opacity-60'}`}>
+                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.is_editable ? 'bg-slate-800 border-slate-800' : 'bg-white border-slate-200'}`}>
                                         {formData.is_editable && <Check size={12} className="text-white" strokeWidth={4} />}
                                     </div>
                                     <input
@@ -990,8 +990,8 @@ const LayerManagement = () => {
                                     </div>
                                 </label>
 
-                                <label className="flex items-center gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-100 cursor-pointer hover:border-blue-200 hover:bg-blue-50/50 transition-all">
-                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.params?.use_proxy ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'}`}>
+                                <label className="flex items-center gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-100 cursor-pointer hover:border-slate-300 hover:bg-slate-100 transition-all">
+                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.params?.use_proxy ? 'bg-slate-800 border-slate-800' : 'bg-white border-slate-200'}`}>
                                         {formData.params?.use_proxy && <Check size={12} className="text-white" strokeWidth={4} />}
                                     </div>
                                     <input
@@ -1021,10 +1021,10 @@ const LayerManagement = () => {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full sm:w-auto bg-blue-600 text-white px-10 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 hover:scale-[1.02] shadow-xl shadow-blue-100 transition-all disabled:opacity-50"
+                                    className="bg-slate-800 text-white px-8 py-4 rounded-xl font-bold hover:bg-slate-900 transition-all flex items-center gap-2 shadow-lg shadow-slate-200"
                                 >
                                     {loading && <Loader2 size={18} className="animate-spin" />}
-                                    {editingLayer ? 'Update Layer Service' : 'Initialize Data Layer'}
+                                    {editingLayer ? 'Update Layer' : 'Add Layer'}
                                 </button>
                             </div>
                         </form>

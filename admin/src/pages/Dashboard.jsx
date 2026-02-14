@@ -82,18 +82,18 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                 <StatCard
-                    icon={<Layers className="text-blue-600" />}
+                    icon={<Layers className="text-slate-600" />}
                     label="Total Layers"
                     value={stats.layers}
                     trend="Live"
-                    color="blue"
+                    color="slate"
                 />
                 <StatCard
-                    icon={<Map className="text-indigo-600" />}
+                    icon={<Map className="text-slate-600" />}
                     label="Active Maps"
                     value={stats.maps}
                     trend="Live"
-                    color="indigo"
+                    color="slate"
                 />
                 <StatCard
                     icon={<Key className="text-emerald-600" />}
@@ -144,7 +144,7 @@ const Dashboard = () => {
                     </div>
                     <button
                         onClick={() => navigate('/maps')}
-                        className="mt-8 w-full py-4 bg-white text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+                        className="mt-8 w-full py-4 bg-white text-slate-800 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                     >
                         Build New Map <ArrowUpRight size={18} />
                     </button>

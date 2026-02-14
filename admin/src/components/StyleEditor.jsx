@@ -48,28 +48,28 @@ const StyleEditor = ({ value, onChange, availableFields }) => {
                 <button
                     type="button"
                     onClick={() => setActiveSection('polygon')}
-                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${activeSection === 'polygon' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${activeSection === 'polygon' ? 'bg-slate-100 text-slate-800 border-b-2 border-slate-800' : 'text-slate-500 hover:bg-slate-50'}`}
                 >
                     <Layout size={14} /> Fill
                 </button>
                 <button
                     type="button"
                     onClick={() => setActiveSection('line')}
-                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${activeSection === 'line' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${activeSection === 'line' ? 'bg-slate-100 text-slate-800 border-b-2 border-slate-800' : 'text-slate-500 hover:bg-slate-50'}`}
                 >
                     <Palette size={14} /> Stroke
                 </button>
                 <button
                     type="button"
                     onClick={() => setActiveSection('point')}
-                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${activeSection === 'point' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${activeSection === 'point' ? 'bg-slate-100 text-slate-800 border-b-2 border-slate-800' : 'text-slate-500 hover:bg-slate-50'}`}
                 >
                     <Circle size={14} /> Point
                 </button>
                 <button
                     type="button"
                     onClick={() => setActiveSection('label')}
-                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${activeSection === 'label' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${activeSection === 'label' ? 'bg-slate-100 text-slate-800 border-b-2 border-slate-800' : 'text-slate-500 hover:bg-slate-50'}`}
                 >
                     <Type size={14} /> Label
                 </button>
@@ -182,7 +182,7 @@ const StyleEditor = ({ value, onChange, availableFields }) => {
                                 <select
                                     value={style.label?.field || ''}
                                     onChange={(e) => updateStyle('label', 'field', e.target.value)}
-                                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-blue-500"
+                                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-slate-400"
                                 >
                                     <option value="">-- No Label --</option>
                                     {availableFields.map(f => (

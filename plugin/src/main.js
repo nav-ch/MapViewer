@@ -284,7 +284,7 @@ class MapViewer extends HTMLElement {
       res.features.forEach((feature, idx) => {
         const properties = feature.properties || (typeof feature.getProperties === 'function' ? feature.getProperties() : {});
         content += `<div style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px;">
-          <strong style="color: #60a5fa; font-size: 10px; text-transform: uppercase;">${res.layerName}</strong>`;
+          <strong style="color: #646cff; font-size: 10px; text-transform: uppercase;">${res.layerName}</strong>`;
 
         if (identifyFields.length > 0) {
           identifyFields.forEach(field => {
@@ -312,7 +312,7 @@ class MapViewer extends HTMLElement {
     content += '</div>';
 
     popup.innerHTML = `
-      <div class="popup-content" style="background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; min-width: 150px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); pointer-events: auto;">
+      <div class="popup-content" style="background: rgba(36, 36, 36, 0.9); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; min-width: 150px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); pointer-events: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
           <span style="font-weight: bold; font-size: 11px; color: #fff;">Feature Info</span>
           <button onclick="this.parentElement.parentElement.parentElement.style.display='none'" style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 14px;">&times;</button>
@@ -352,7 +352,7 @@ class MapViewer extends HTMLElement {
                 .trigger-layers { top: 20px; right: 20px; }
                 .trigger-basemaps { bottom: 20px; right: 20px; }
                 .control-trigger:hover { background: #fff; transform: scale(1.05); }
-                .control-trigger.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+                .control-trigger.active { background: #646cff; color: white; border-color: #646cff; }
 
                 .panel {
                    position: absolute; z-index: 1000; background: rgba(255, 255, 255, 0.9);
@@ -373,26 +373,26 @@ class MapViewer extends HTMLElement {
                 .layer-name { font-size: 13px; font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
                 
                 .basemap-card { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 8px; border-radius: 16px; transition: all 0.2s ease; }
-                .basemap-card.active { background: rgba(59, 130, 246, 0.1); }
+                .basemap-card.active { background: rgba(100, 108, 255, 0.1); }
                 .basemap-thumb { width: 44px; height: 44px; border-radius: 12px; border: 2px solid transparent; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-                .basemap-card.active .basemap-thumb { border-color: #3b82f6; transform: scale(1.05); }
+                .basemap-card.active .basemap-thumb { border-color: #646cff; transform: scale(1.05); }
                 
                 .legend-container { display: none; margin-top: 8px; padding: 8px; background: white; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center; }
                 .legend-container.show { display: block; }
                 .legend-container img { max-width: 100%; border-radius: 4px; }
                 .legend-btn { 
-                    background: none; border: 1px solid #3b82f6; color: #3b82f6; 
+                    background: none; border: 1px solid #646cff; color: #646cff; 
                     border-radius: 6px; padding: 2px 8px; font-size: 10px; 
                     font-weight: 600; cursor: pointer; margin-top: 4px;
                     transition: all 0.2s ease;
                 }
-                .legend-btn:hover { background: #3b82f6; color: white; }
+                .legend-btn:hover { background: #646cff; color: white; }
                 
                 .mapviewer-coords-overlay {
                     position: absolute !important; bottom: 20px !important; left: 20px !important; z-index: 1000 !important;
                     pointer-events: none !important; white-space: nowrap !important;
                     font-family: ui-monospace, monospace !important;
-                    color: #0f172a !important; font-size: 11px !important; font-weight: 800 !important;
+                    color: #213547 !important; font-size: 11px !important; font-weight: 800 !important;
                     /* Strong Halo effect - Multiple layers for thickness */
                     text-shadow: 
                         -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff,
@@ -406,7 +406,7 @@ class MapViewer extends HTMLElement {
                 .ol-control button {
                     background: rgba(255, 255, 255, 0.8) !important; 
                     backdrop-filter: blur(12px) !important;
-                    color: #1e293b !important;
+                    color: #213547 !important;
                     border: 1px solid rgba(255, 255, 255, 0.5) !important;
                     border-radius: 12px !important;
                     width: 38px !important;
@@ -526,8 +526,8 @@ class MapViewer extends HTMLElement {
                     onclick="this.getRootNode().host.toggleEditing(${idx})"
                     style="
                         flex: 1; padding: 4px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;
-                        border: 1px solid ${this.editingLayerIdx === idx ? '#3b82f6' : '#cbd5e1'};
-                        background: ${this.editingLayerIdx === idx ? '#3b82f6' : '#fff'};
+                        border: 1px solid ${this.editingLayerIdx === idx ? '#646cff' : '#cbd5e1'};
+                        background: ${this.editingLayerIdx === idx ? '#646cff' : '#fff'};
                         color: ${this.editingLayerIdx === idx ? '#fff' : '#475569'};
                     "
                  >

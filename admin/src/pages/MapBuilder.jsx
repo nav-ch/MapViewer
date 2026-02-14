@@ -277,7 +277,7 @@ const MapBuilder = () => {
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
-                    className="bg-blue-600 text-white px-6 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-blue-100"
+                    className="bg-slate-800 text-white px-6 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-900 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-slate-200"
                 >
                     <Plus size={20} /> Create New Map
                 </button>
@@ -296,19 +296,19 @@ const MapBuilder = () => {
                 {maps.map(map => (
                     <div key={map.id} className="glass-card group overflow-hidden flex flex-col">
                         <div className="h-40 bg-slate-50 relative flex items-center justify-center overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/10" />
-                            <MapIcon size={48} className="text-slate-200 group-hover:scale-110 group-hover:text-blue-200 transition-all duration-700" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-slate-500/10 to-gray-500/10" />
+                            <MapIcon size={48} className="text-slate-200 group-hover:scale-110 group-hover:text-slate-300 transition-all duration-700" />
                             <div className="absolute top-4 right-4 flex gap-2">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleClone(map.id); }}
-                                    className="p-2.5 bg-white/90 backdrop-blur-md rounded-xl text-slate-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                                    className="p-2.5 bg-white/90 backdrop-blur-md rounded-xl text-slate-600 hover:bg-slate-800 hover:text-white transition-all shadow-sm"
                                     title="Clone Map"
                                 >
                                     <Copy size={16} />
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleOpenModal(map); }}
-                                    className="p-2.5 bg-white/90 backdrop-blur-md rounded-xl text-slate-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                    className="p-2.5 bg-white/90 backdrop-blur-md rounded-xl text-slate-600 hover:bg-slate-800 hover:text-white transition-all shadow-sm"
                                 >
                                     <Settings size={16} />
                                 </button>
@@ -338,7 +338,7 @@ const MapBuilder = () => {
                                     >
                                         ID: {map.id}
                                     </button>
-                                    <div className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-200 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">
                                         <Layers size={14} /> {map.layer_count || 0}
                                     </div>
                                 </div>
@@ -347,7 +347,7 @@ const MapBuilder = () => {
                                         setSelectedMapId(map.id);
                                         setIsPreviewOpen(true);
                                     }}
-                                    className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-blue-600 flex items-center gap-1.5 transition-all group/btn"
+                                    className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-800 flex items-center gap-1.5 transition-all group/btn"
                                 >
                                     Live View <Eye size={14} className="group-hover/btn:scale-110 transition-transform" />
                                 </button>
@@ -385,7 +385,7 @@ const MapBuilder = () => {
                                             required
                                             value={formData.title}
                                             onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                            className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium"
+                                            className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 transition-all font-medium"
                                             placeholder="e.g. Sales Territory Map"
                                         />
                                     </div>
@@ -395,7 +395,7 @@ const MapBuilder = () => {
                                         <textarea
                                             value={formData.description}
                                             onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                            className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 h-24 resize-none transition-all font-medium leading-relaxed"
+                                            className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 h-24 resize-none transition-all font-medium leading-relaxed"
                                             placeholder="Describe the purpose of this map..."
                                         />
                                     </div>
@@ -412,7 +412,7 @@ const MapBuilder = () => {
                                                     ...formData,
                                                     config: { ...formData.config, zoom: parseInt(e.target.value) || 0 }
                                                 })}
-                                                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium text-sm"
+                                                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 transition-all font-medium text-sm"
                                             />
                                         </div>
                                         <div className="flex flex-col gap-2.5">
@@ -429,7 +429,7 @@ const MapBuilder = () => {
                                                         config: { ...formData.config, center: [lon, lat] }
                                                     });
                                                 }}
-                                                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium text-sm"
+                                                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 transition-all font-medium text-sm"
                                             />
                                         </div>
                                         <div className="flex flex-col gap-2.5">
@@ -446,7 +446,7 @@ const MapBuilder = () => {
                                                         config: { ...formData.config, center: [lon, lat] }
                                                     });
                                                 }}
-                                                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium text-sm"
+                                                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 transition-all font-medium text-sm"
                                             />
                                         </div>
                                         <div className="flex flex-col gap-2 col-span-2 lg:col-span-3">
@@ -455,7 +455,7 @@ const MapBuilder = () => {
                                                 <select
                                                     value={formData.projection}
                                                     onChange={e => setFormData({ ...formData, projection: e.target.value })}
-                                                    className="flex-1 bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 cursor-pointer appearance-none transition-all font-medium text-sm"
+                                                    className="flex-1 bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 cursor-pointer appearance-none transition-all font-medium text-sm"
                                                 >
                                                     {COMMON_PROJECTIONS.map(p => <option key={p.code} value={p.code}>{p.code} - {p.name}</option>)}
                                                 </select>
@@ -463,7 +463,7 @@ const MapBuilder = () => {
                                                     type="text"
                                                     value={formData.projection}
                                                     onChange={e => setFormData({ ...formData, projection: e.target.value })}
-                                                    className="w-40 bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 font-mono text-sm"
+                                                    className="w-40 bg-white border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 font-mono text-sm"
                                                     placeholder="Custom EPSG..."
                                                 />
                                             </div>
@@ -482,11 +482,11 @@ const MapBuilder = () => {
                                             </div>
                                         )}
                                         {formData.selectedBasemaps.map((b) => (
-                                            <div key={b.id} className="bg-white border border-slate-200 p-3 rounded-xl flex items-center justify-between group shadow-sm hover:border-blue-200 transition-all">
+                                            <div key={b.id} className="bg-white border border-slate-200 p-3 rounded-xl flex items-center justify-between group shadow-sm hover:border-slate-300 transition-all">
                                                 <div className="flex items-center gap-3">
                                                     <div
                                                         onClick={() => setDefaultBasemap(b.id)}
-                                                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${b.is_default ? 'bg-blue-600 border-blue-600' : 'border-slate-300 hover:border-blue-400'}`}
+                                                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${b.is_default ? 'bg-slate-800 border-slate-800' : 'border-slate-300 hover:border-slate-400'}`}
                                                     >
                                                         {b.is_default && <Check size={12} className="text-white" />}
                                                     </div>
@@ -544,10 +544,10 @@ const MapBuilder = () => {
                                                         });
                                                     }
                                                 }}
-                                                className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between group shadow-sm hover:border-blue-200 transition-all cursor-grab active:cursor-grabbing"
+                                                className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between group shadow-sm hover:border-slate-300 transition-all cursor-grab active:cursor-grabbing"
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <div className="cursor-move text-slate-300 group-hover:text-blue-600 transition-colors">
+                                                    <div className="cursor-move text-slate-300 group-hover:text-slate-600 transition-colors">
                                                         <MoveVertical size={16} />
                                                     </div>
                                                     <div>
@@ -559,21 +559,21 @@ const MapBuilder = () => {
                                                     <button
                                                         onClick={() => moveLayer(idx, 'up')}
                                                         disabled={idx === 0}
-                                                        className="p-1.5 text-slate-300 hover:text-blue-600 disabled:opacity-0 transition-all"
+                                                        className="p-1.5 text-slate-300 hover:text-slate-600 disabled:opacity-0 transition-all"
                                                     >
                                                         <ArrowUp size={14} />
                                                     </button>
                                                     <button
                                                         onClick={() => moveLayer(idx, 'down')}
                                                         disabled={idx === formData.selectedLayers.length - 1}
-                                                        className="p-1.5 text-slate-300 hover:text-blue-600 disabled:opacity-0 transition-all"
+                                                        className="p-1.5 text-slate-300 hover:text-slate-600 disabled:opacity-0 transition-all"
                                                     >
                                                         <ArrowDown size={14} />
                                                     </button>
                                                     <div class="h-4 w-px bg-slate-100 mx-1"></div>
                                                     <button
                                                         onClick={() => toggleLayerVisibility(idx)}
-                                                        className={`p-1.5 transition-all ${l.visible !== false ? 'text-blue-600 bg-blue-50 rounded-lg' : 'text-slate-300 hover:text-slate-500'}`}
+                                                        className={`p-1.5 transition-all ${l.visible !== false ? 'text-slate-600 bg-slate-100 rounded-lg' : 'text-slate-300 hover:text-slate-500'}`}
                                                         title={l.visible !== false ? 'Visible' : 'Hidden'}
                                                     >
                                                         {l.visible !== false ? <Eye size={14} /> : <EyeOff size={14} />}
@@ -608,15 +608,15 @@ const MapBuilder = () => {
                                                         p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex items-center gap-3
                                                         ${isSelected
                                                             ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                                                            : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}
+                                                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}
                                                     `}
                                                 >
-                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isSelected ? 'bg-white/20' : 'bg-slate-50 text-slate-400'}`}>
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-50 text-slate-400'}`}>
                                                         <Globe size={20} />
                                                     </div>
                                                     <div className="min-w-0">
                                                         <div className={`font-bold text-sm truncate transition-colors ${isSelected ? 'text-white' : 'text-slate-800'}`}>{b.name}</div>
-                                                        <div className={`text-[10px] uppercase font-bold tracking-widest mt-0.5 opacity-60`}>{b.type}</div>
+                                                        <div className={`text-[10px] uppercase font-bold tracking-widest mt-0.5 ${isSelected ? 'text-blue-100' : 'text-slate-400 opacity-60'}`}>{b.type}</div>
                                                     </div>
                                                 </button>
                                             );
@@ -640,15 +640,15 @@ const MapBuilder = () => {
                                                         p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex items-center gap-3
                                                         ${isSelected
                                                             ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                                                            : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}
+                                                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}
                                                     `}
                                                 >
-                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isSelected ? 'bg-white/20' : 'bg-slate-50 text-slate-400'}`}>
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-50 text-slate-400'}`}>
                                                         <Layers size={20} />
                                                     </div>
                                                     <div className="min-w-0">
                                                         <div className={`font-bold text-sm truncate transition-colors ${isSelected ? 'text-white' : 'text-slate-800'}`}>{l.name}</div>
-                                                        <div className={`text-[10px] uppercase font-bold tracking-widest mt-0.5 opacity-60`}>{l.type}</div>
+                                                        <div className={`text-[10px] uppercase font-bold tracking-widest mt-0.5 ${isSelected ? 'text-blue-100' : 'text-slate-400 opacity-60'}`}>{l.type}</div>
                                                     </div>
                                                 </button>
                                             );
@@ -660,7 +660,7 @@ const MapBuilder = () => {
 
                         <div className="p-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between bg-white gap-6">
                             <div className="flex items-center gap-3 text-sm text-slate-500 font-medium">
-                                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
                                     <Info size={18} />
                                 </div>
                                 <p className="max-w-md">Top items in the stack list will be rendered over the items below them (Z-Index ordering).</p>
@@ -670,7 +670,7 @@ const MapBuilder = () => {
                                 <button
                                     onClick={handleSave}
                                     disabled={loading}
-                                    className="flex-1 sm:flex-none bg-blue-600 text-white px-12 py-4 rounded-2xl font-bold hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-2"
+                                    className="flex-1 sm:flex-none bg-slate-800 text-white px-12 py-4 rounded-2xl font-bold hover:bg-slate-900 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
                                 >
                                     {loading && <Loader2 size={18} className="animate-spin" />}
                                     Finalize Project
@@ -690,7 +690,7 @@ const MapBuilder = () => {
                         <div className="w-full h-full max-w-7xl max-h-[85vh] rounded-[40px] overflow-hidden shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] relative animate-in zoom-in duration-500 bg-white">
                             <div className="absolute top-8 left-8 z-[70] flex items-center gap-4">
                                 <div className="bg-slate-900/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 pointer-events-none flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                    <div className="w-2 h-2 rounded-full bg-slate-500 animate-pulse" />
                                     <h3 className="text-white font-bold text-sm tracking-widest uppercase">
                                         Live Architectural Preview
                                     </h3>
@@ -718,7 +718,7 @@ const MapBuilder = () => {
                                     onClick={handleCaptureView}
                                     className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/50 shadow-2xl flex items-center gap-3 text-slate-800 font-bold hover:scale-105 transition-all text-xs uppercase tracking-wider"
                                 >
-                                    <Camera size={16} className="text-blue-600" />
+                                    <Camera size={16} className="text-slate-600" />
                                     Set Initial Extent
                                 </button>
                             </div>
@@ -731,7 +731,7 @@ const MapBuilder = () => {
                                     </div>
                                     <div className="h-4 w-px bg-slate-200" />
                                     <div className="flex items-center gap-2">
-                                        <Globe size={14} className="text-blue-500" />
+                                        <Globe size={14} className="text-slate-500" />
                                         <span className="text-[10px] font-black uppercase text-slate-800 tracking-[0.2em]">
                                             {maps.find(m => m.id === selectedMapId)?.projection || 'EPSG:3857'}
                                         </span>

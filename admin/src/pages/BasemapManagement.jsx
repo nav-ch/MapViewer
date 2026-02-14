@@ -191,7 +191,7 @@ const BasemapManagement = () => {
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                    className="flex items-center gap-2 bg-slate-800 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-slate-900 transition-all shadow-lg shadow-slate-200"
                 >
                     <Plus size={20} /> Add Basemap
                 </button>
@@ -204,7 +204,7 @@ const BasemapManagement = () => {
                     <input
                         type="text"
                         placeholder="Search basemaps..."
-                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-500/20"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -214,11 +214,11 @@ const BasemapManagement = () => {
             {/* Basemap Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredBasemaps.map(basemap => (
-                    <div key={basemap.id} className="group bg-white rounded-2xl border border-slate-200 p-5 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/5 transition-all relative overflow-hidden">
+                    <div key={basemap.id} className="group bg-white rounded-2xl border border-slate-200 p-5 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-500/5 transition-all relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                             <button
                                 onClick={() => handleOpenModal(basemap)}
-                                className="p-2 bg-white text-slate-600 hover:text-blue-600 rounded-lg shadow-sm border border-slate-100"
+                                className="p-2 bg-white text-slate-600 hover:text-slate-800 rounded-lg shadow-sm border border-slate-100"
                             >
                                 <Edit2 size={16} />
                             </button>
@@ -231,7 +231,7 @@ const BasemapManagement = () => {
                         </div>
 
                         <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
                                 <Globe size={24} />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -272,7 +272,7 @@ const BasemapManagement = () => {
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Display Name</label>
                                 <input
                                     required
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500/20 outline-none font-medium"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 />
@@ -297,7 +297,7 @@ const BasemapManagement = () => {
                                     <textarea
                                         required
                                         rows={2}
-                                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-mono text-sm"
+                                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500/20 outline-none font-mono text-sm"
                                         placeholder="e.g. https://tile.openstreetmap.org/{z}/{x}/{y}.png"
                                         value={formData.url}
                                         onChange={e => setFormData({ ...formData, url: e.target.value })}
@@ -307,7 +307,7 @@ const BasemapManagement = () => {
                                             type="button"
                                             onClick={fetchWmtsCapabilities}
                                             disabled={loadingCapabilities || !formData.url}
-                                            className="px-4 bg-slate-100 text-slate-600 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 rounded-xl font-bold transition-all flex flex-col items-center justify-center gap-1 min-w-[80px]"
+                                            className="px-4 bg-slate-100 text-slate-600 hover:text-slate-800 hover:bg-slate-200 border border-slate-200 rounded-xl font-bold transition-all flex flex-col items-center justify-center gap-1 min-w-[80px]"
                                         >
                                             {loadingCapabilities ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
                                             <span className="text-[10px]">Fetch</span>
@@ -321,7 +321,7 @@ const BasemapManagement = () => {
                                 <div className="space-y-1.5 animate-in fade-in slide-in-from-top-4">
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Select Layer</label>
                                     <select
-                                        className="w-full px-4 py-3 bg-blue-50 text-blue-900 border border-blue-200 rounded-xl outline-none font-medium cursor-pointer"
+                                        className="w-full px-4 py-3 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl outline-none font-medium cursor-pointer"
                                         onChange={(e) => {
                                             const layer = wmtsLayers.find(l => l.Identifier === e.target.value);
                                             if (layer) selectWmtsLayer(layer);
@@ -342,7 +342,7 @@ const BasemapManagement = () => {
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Parameters (JSON)</label>
                                 <textarea
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-mono text-xs"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-500/20 outline-none font-mono text-xs"
                                     rows={4}
                                     value={JSON.stringify(formData.params, null, 2)}
                                     onChange={e => {
@@ -369,7 +369,7 @@ const BasemapManagement = () => {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="px-8 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center gap-2"
+                                    className="px-8 py-2.5 rounded-xl font-bold text-white bg-slate-800 hover:bg-slate-900 transition-all shadow-lg shadow-slate-200 flex items-center gap-2"
                                 >
                                     {loading ? <Loader2 className="animate-spin" size={20} /> : <Check size={20} />}
                                     {editingBasemap ? 'Update Basemap' : 'Save Basemap'}

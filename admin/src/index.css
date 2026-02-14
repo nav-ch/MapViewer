@@ -44,9 +44,8 @@ body {
 }
 
 .sidebar-active {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  background-color: #f1f5f9;
+  color: #0f172a !important;
 }
 
 /* Custom Scrollbar */

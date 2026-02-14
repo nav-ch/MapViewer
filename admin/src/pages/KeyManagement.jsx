@@ -125,7 +125,7 @@ const KeyManagement = () => {
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
-                    className="bg-blue-600 text-white px-6 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-blue-100"
+                    className="bg-slate-800 text-white px-6 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-900 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-slate-200"
                 >
                     <Plus size={20} /> Generate New Key
                 </button>
@@ -136,7 +136,7 @@ const KeyManagement = () => {
                 <input
                     type="text"
                     placeholder="Search keys by application name..."
-                    className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl text-slate-800 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all shadow-sm font-medium"
+                    className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl text-slate-800 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none transition-all shadow-sm font-medium"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -171,7 +171,7 @@ const KeyManagement = () => {
                                 <tr key={k.id} className="hover:bg-blue-50/30 transition-colors group">
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">
                                                 {k.app_name.substring(0, 2).toUpperCase()}
                                             </div>
                                             <span className="font-bold text-slate-700">{k.app_name}</span>
@@ -207,7 +207,7 @@ const KeyManagement = () => {
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-3">
-                                            <code className="bg-slate-100 px-3 py-1.5 rounded-lg text-blue-600 text-xs font-mono font-bold tracking-tight border border-slate-200">{k.key}</code>
+                                            <code className="bg-slate-100 px-3 py-1.5 rounded-lg text-slate-700 text-xs font-mono font-bold tracking-tight border border-slate-200">{k.key}</code>
                                             <button
                                                 onClick={() => copyToClipboard(k.key, k.id)}
                                                 className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all shadow-sm"
@@ -252,12 +252,12 @@ const KeyManagement = () => {
                 </div>
             </div>
 
-            <div className="bg-blue-600 p-8 lg:p-12 rounded-[32px] overflow-hidden relative shadow-2xl shadow-blue-200">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+            <div className="bg-white border border-slate-200 p-8 lg:p-12 rounded-[32px] overflow-hidden relative shadow-xl shadow-slate-200/50">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
                 <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                     <div className="max-w-xl">
-                        <h3 className="text-2xl font-bold text-white mb-4 italic">Security Optimization_</h3>
-                        <p className="text-blue-100 leading-relaxed font-medium">
+                        <h3 className="text-2xl font-bold text-slate-800 mb-4 italic">Security Optimization_</h3>
+                        <p className="text-slate-500 leading-relaxed font-medium">
                             Store these keys securely. Domain-restrict your keys whenever possible, and use <strong>Map Access</strong> limits to ensure applications only see data relevant to them.
                         </p>
                     </div>
@@ -284,7 +284,7 @@ const KeyManagement = () => {
                                     required
                                     value={formData.app_name}
                                     onChange={e => setFormData({ ...formData, app_name: e.target.value })}
-                                    className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium"
+                                    className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 transition-all font-medium"
                                     placeholder="e.g. Sales Production Cluster"
                                 />
                             </div>
@@ -296,7 +296,7 @@ const KeyManagement = () => {
                                     <button
                                         type="button"
                                         onClick={() => setFormData({ ...formData, map_ids: [] })}
-                                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${formData.map_ids.length === 0 ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${formData.map_ids.length === 0 ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                     >
                                         Global Access
                                     </button>
@@ -307,7 +307,7 @@ const KeyManagement = () => {
                                                 setFormData({ ...formData, map_ids: [maps[0].id] });
                                             }
                                         }}
-                                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${formData.map_ids.length > 0 ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${formData.map_ids.length > 0 ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                     >
                                         Selected Maps
                                     </button>
@@ -328,8 +328,8 @@ const KeyManagement = () => {
                                         <div className="max-h-48 overflow-y-auto p-2 scrollbar-thin">
                                             {maps.filter(m => m.title.toLowerCase().includes(mapSearch.toLowerCase())).map(m => (
                                                 <label key={m.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer group transition-colors">
-                                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${formData.map_ids.includes(m.id) ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white group-hover:border-blue-400'}`}>
-                                                        {formData.map_ids.includes(m.id) && <Check size={12} className="text-white" strokeWidth={3} />}
+                                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${formData.map_ids.includes(m.id) ? 'bg-white border-emerald-500 shadow-sm' : 'border-slate-300 bg-white group-hover:border-slate-400'}`}>
+                                                        {formData.map_ids.includes(m.id) && <Check size={12} className="text-emerald-500" strokeWidth={4} />}
                                                     </div>
                                                     <input
                                                         type="checkbox"
@@ -344,7 +344,7 @@ const KeyManagement = () => {
                                                             setFormData({ ...formData, map_ids: newIds });
                                                         }}
                                                     />
-                                                    <span className={`text-sm font-medium transition-colors ${formData.map_ids.includes(m.id) ? 'text-blue-700' : 'text-slate-600'}`}>{m.title}</span>
+                                                    <span className={`text-sm font-medium transition-colors ${formData.map_ids.includes(m.id) ? 'text-slate-900' : 'text-slate-600'}`}>{m.title}</span>
                                                 </label>
                                             ))}
                                             {maps.filter(m => m.title.toLowerCase().includes(mapSearch.toLowerCase())).length === 0 && (
@@ -356,8 +356,8 @@ const KeyManagement = () => {
                             </div>
 
                             {editingKey && (
-                                <label className="flex items-center gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-100 cursor-pointer hover:border-blue-200 transition-all">
-                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.is_active ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'}`}>
+                                <label className="flex items-center gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-100 cursor-pointer hover:border-slate-300 transition-all">
+                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.is_active ? 'bg-slate-800 border-slate-800' : 'bg-white border-slate-200'}`}>
                                         {formData.is_active && <Check size={14} className="text-white" strokeWidth={4} />}
                                     </div>
                                     <input
@@ -386,7 +386,7 @@ const KeyManagement = () => {
                                         type="text"
                                         value={formData.allowed_hosts || ''}
                                         onChange={e => setFormData({ ...formData, allowed_hosts: e.target.value })}
-                                        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-mono text-xs"
+                                        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 transition-all font-mono text-xs"
                                         placeholder="e.g. example.com, localhost"
                                     />
                                     <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Comma-separated domains. Leave empty for unrestricted access.</p>
@@ -398,7 +398,7 @@ const KeyManagement = () => {
                                         type="datetime-local"
                                         value={formData.expires_at ? new Date(formData.expires_at).toISOString().slice(0, 16) : ''}
                                         onChange={e => setFormData({ ...formData, expires_at: e.target.value })}
-                                        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-slate-800 transition-all font-medium text-sm"
+                                        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-slate-100 focus:border-slate-400 outline-none text-slate-800 transition-all font-medium text-sm"
                                     />
                                     <p className="text-[10px] text-slate-400 ml-2 font-medium italic">Optional. Key acts as valid until this timestamp.</p>
                                 </div>
@@ -407,7 +407,7 @@ const KeyManagement = () => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="bg-blue-600 text-white w-full py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50"
+                                className="bg-slate-800 text-white w-full py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-900 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-50"
                             >
                                 {loading && <Loader2 size={18} className="animate-spin" />}
                                 {editingKey ? 'Confirm Identity Update' : 'Generate Credential'}
